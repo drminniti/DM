@@ -1,0 +1,80 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { adminDb } from '@/lib/firebase-admin';
+
+export async function GET(req: NextRequest) {
+    // Protect with secret
+    const secret = req.headers.get('x-cron-secret') ?? req.nextUrl.searchParams.get('secret');
+    if (secret !== process.env.CRON_SECRET) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!adminDb) {
+        return NextResponse.json({ error: 'Firebase Admin not configured' }, { status: 500 });
+    }
+
+    const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+
+    // Get all active challenges
+    const challengesSnap = await adminDb
+        .collection('challenges')
+        .where('status', '==', 'ACTIVE')
+        .get();
+
+    let processed = 0;
+
+    for (const challengeDoc of challengesSnap.docs) {
+        const challenge = challengeDoc.data();
+        const challengeId = challengeDoc.id;
+        const mode = challenge.mode as 'TEAM' | 'INDIVIDUAL';
+
+        // Get all participants
+        const participantsSnap = await adminDb
+            .collection('participants')
+            .where('challengeId', '==', challengeId)
+            .get();
+
+        const participantIds = participantsSnap.docs.map((d) => d.id);
+
+        // Get today's logs for this challenge
+        const logsSnap = await adminDb
+            .collection('daily_logs')
+            .where('challengeId', '==', challengeId)
+            .where('date', '==', today)
+            .where('isCompleted', '==', true)
+            .get();
+
+        const completedParticipantIds = new Set(
+            logsSnap.docs.map((d) => d.data().participantId as string)
+        );
+
+        const failedParticipantIds = participantIds.filter(
+            (pid) => !completedParticipantIds.has(pid)
+        );
+
+        if (failedParticipantIds.length === 0) {
+            // Everyone completed — no resets needed
+            processed++;
+            continue;
+        }
+
+        if (mode === 'INDIVIDUAL') {
+            // Only reset streaks of those who failed
+            const batch = adminDb.batch();
+            for (const pid of failedParticipantIds) {
+                batch.update(adminDb.collection('participants').doc(pid), { currentStreak: 0 });
+            }
+            await batch.commit();
+        } else if (mode === 'TEAM') {
+            // At least one failed — reset ALL streaks
+            const batch = adminDb.batch();
+            for (const pid of participantIds) {
+                batch.update(adminDb.collection('participants').doc(pid), { currentStreak: 0 });
+            }
+            await batch.commit();
+        }
+
+        processed++;
+    }
+
+    return NextResponse.json({ ok: true, challengesProcessed: processed, date: today });
+}
