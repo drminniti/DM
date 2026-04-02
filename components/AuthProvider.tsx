@@ -24,24 +24,47 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  // Start as true — don't render anything until both
+  // onAuthStateChanged AND getRedirectResult have resolved
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const auth = getFirebaseAuth();
+    let authStateResolved = false;
+    let redirectResolved = false;
+    let latestUser: User | null = null;
 
-    // Handle redirect result (for browsers where popup was blocked)
+    function maybeFinish() {
+      if (authStateResolved && redirectResolved) {
+        setUser(latestUser);
+        setLoading(false);
+      }
+    }
+
+    // 1. Listen for auth state changes
+    const unsub = onAuthStateChanged(auth, (u) => {
+      latestUser = u;
+      authStateResolved = true;
+      maybeFinish();
+    });
+
+    // 2. Process pending redirect result (runs after page reload from signInWithRedirect)
     getRedirectResult(auth)
       .then((result) => {
-        if (result?.user) setUser(result.user);
+        if (result?.user) {
+          // Redirect sign-in succeeded — use this user immediately
+          latestUser = result.user;
+          authStateResolved = true; // treat as resolved too
+        }
       })
       .catch(() => {
-        // Ignore – "missing initial state" error when no redirect was in progress
+        // No redirect in progress — safe to ignore
+      })
+      .finally(() => {
+        redirectResolved = true;
+        maybeFinish();
       });
 
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(false);
-    });
     return unsub;
   }, []);
 
@@ -51,11 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     provider.setCustomParameters({ prompt: 'select_account' });
 
     try {
-      // Try popup first (faster UX)
+      // Try popup first (instant UX, works on desktop)
       await signInWithPopup(auth, provider);
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code;
-      // Popup was blocked or not supported → fall back to full redirect
+      // Popup blocked / not supported → full-page redirect (Safari, mobile, strict browsers)
       if (
         code === AuthErrorCodes.POPUP_BLOCKED ||
         code === AuthErrorCodes.POPUP_CLOSED_BY_USER ||
