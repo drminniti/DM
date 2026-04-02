@@ -24,48 +24,35 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  // Start as true — don't render anything until both
-  // onAuthStateChanged AND getRedirectResult have resolved
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const auth = getFirebaseAuth();
-    let authStateResolved = false;
-    let redirectResolved = false;
-    let latestUser: User | null = null;
+    let authUnsub: (() => void) | null = null;
 
-    function maybeFinish() {
-      if (authStateResolved && redirectResolved) {
-        setUser(latestUser);
-        setLoading(false);
-      }
-    }
-
-    // 1. Listen for auth state changes
-    const unsub = onAuthStateChanged(auth, (u) => {
-      latestUser = u;
-      authStateResolved = true;
-      maybeFinish();
-    });
-
-    // 2. Process pending redirect result (runs after page reload from signInWithRedirect)
+    // KEY FIX: First await the redirect result so Firebase updates its
+    // internal auth state. THEN subscribe to onAuthStateChanged, which
+    // will fire with the correct (post-redirect) user — no race condition.
     getRedirectResult(auth)
       .then((result) => {
-        if (result?.user) {
-          // Redirect sign-in succeeded — use this user immediately
-          latestUser = result.user;
-          authStateResolved = true; // treat as resolved too
-        }
+        // If there was a pending redirect sign-in, capture the user immediately
+        if (result?.user) setUser(result.user);
       })
       .catch(() => {
-        // No redirect in progress — safe to ignore
+        // No pending redirect — safe to ignore
       })
       .finally(() => {
-        redirectResolved = true;
-        maybeFinish();
+        // Subscribe AFTER getRedirectResult— Firebase's internal state is
+        // now settled, so the first onAuthStateChanged emission is correct.
+        authUnsub = onAuthStateChanged(auth, (u) => {
+          setUser(u);
+          setLoading(false);
+        });
       });
 
-    return unsub;
+    return () => {
+      authUnsub?.();
+    };
   }, []);
 
   const signInWithGoogle = async () => {
@@ -74,11 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     provider.setCustomParameters({ prompt: 'select_account' });
 
     try {
-      // Try popup first (instant UX, works on desktop)
       await signInWithPopup(auth, provider);
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code;
-      // Popup blocked / not supported → full-page redirect (Safari, mobile, strict browsers)
+      // Popup blocked / not supported → fall back to full-page redirect
       if (
         code === AuthErrorCodes.POPUP_BLOCKED ||
         code === AuthErrorCodes.POPUP_CLOSED_BY_USER ||
