@@ -7,6 +7,7 @@ import {
     query,
     where,
     updateDoc,
+    onSnapshot,
     serverTimestamp,
     Timestamp,
 } from 'firebase/firestore';
@@ -198,4 +199,48 @@ export async function markDayComplete(
             currentStreak: current + 1,
         });
     }
+}
+
+// ---------- REAL-TIME LISTENERS (onSnapshot) ----------
+
+/** Subscribe to live participant updates for a challenge. Returns unsubscribe fn. */
+export function subscribeToParticipants(
+    challengeId: string,
+    callback: (participants: Participant[]) => void
+): () => void {
+    const db = getFirebaseDb();
+    const q = query(collection(db, 'participants'), where('challengeId', '==', challengeId));
+    return onSnapshot(q, (snap) => {
+        callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Participant)));
+    });
+}
+
+/** Subscribe to live challenge document updates. Returns unsubscribe fn. */
+export function subscribeToChallenge(
+    challengeId: string,
+    callback: (challenge: Challenge | null) => void
+): () => void {
+    const db = getFirebaseDb();
+    return onSnapshot(doc(db, 'challenges', challengeId), (snap) => {
+        callback(snap.exists() ? ({ id: snap.id, ...snap.data() } as Challenge) : null);
+    });
+}
+
+/** Subscribe to today's daily logs for a challenge. Returns unsubscribe fn. */
+export function subscribeToTodayLogs(
+    challengeId: string,
+    callback: (completedParticipantIds: Set<string>) => void
+): () => void {
+    const db = getFirebaseDb();
+    const today = new Date().toLocaleDateString('en-CA');
+    const q = query(
+        collection(db, 'daily_logs'),
+        where('challengeId', '==', challengeId),
+        where('date', '==', today),
+        where('isCompleted', '==', true)
+    );
+    return onSnapshot(q, (snap) => {
+        const ids = new Set(snap.docs.map((d) => d.data().participantId as string));
+        callback(ids);
+    });
 }
