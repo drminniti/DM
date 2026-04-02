@@ -12,7 +12,7 @@ const firebaseConfig = {
 };
 
 // Only initialize Firebase when the API key is available (avoids SSR prerender crash at build time)
-function getFirebaseApp(): FirebaseApp {
+export function getFirebaseApp(): FirebaseApp {
   if (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
     throw new Error(
       'Firebase not configured. Copy .env.local.example to .env.local and fill in your credentials.'

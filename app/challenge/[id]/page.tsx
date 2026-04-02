@@ -15,6 +15,7 @@ import {
 import CompleteButton from '@/components/CompleteButton';
 import ParticipantList from '@/components/ParticipantList';
 import StreakBadge from '@/components/StreakBadge';
+import NotificationButton from '@/components/NotificationButton';
 
 export default function ChallengePage() {
   const { user, loading } = useAuth();
@@ -193,6 +194,13 @@ export default function ChallengePage() {
             alreadyDone={completedToday}
             onComplete={() => {/* onSnapshot handles the update automatically */}}
           />
+        </div>
+      )}
+
+      {/* Notification opt-in */}
+      {myParticipant && (
+        <div className="mb-6">
+          <NotificationButton participantId={myParticipant.id} />
         </div>
       )}
 
