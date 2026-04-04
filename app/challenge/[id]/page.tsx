@@ -88,6 +88,28 @@ export default function ChallengePage() {
     };
   }, [id, user]);
 
+  useEffect(() => {
+    if (!challenge) return;
+    const completedToday = myParticipant ? completedIds.has(myParticipant.id) : false;
+    const teamStreak = challenge.mode === 'TEAM' && participants.length > 0
+      ? Math.min(...participants.map((p) => p.currentStreak))
+      : myParticipant?.currentStreak ?? 0;
+    
+    const { isFinished } = getChallengeProgress(
+      challenge, 
+      challenge.mode === 'TEAM' ? teamStreak : (myParticipant?.currentStreak ?? 0), 
+      completedToday
+    );
+    
+    if (isFinished && typeof window !== 'undefined') {
+      const storageKey = `seen_finish_${challenge.id}`;
+      if (!localStorage.getItem(storageKey)) {
+        const timer = setTimeout(() => setShowEndModal(true), 600);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [challenge, participants, completedIds, myParticipant]);
+
   if (loading || initialLoading || !user) {
     return (
       <div className="app-container" style={{ justifyContent: 'center', alignItems: 'center', gap: 16 }}>
@@ -118,17 +140,7 @@ export default function ChallengePage() {
       ? Math.min(...participants.map((p) => p.currentStreak))
       : myParticipant?.currentStreak ?? 0;
 
-  const { currentDay, daysLeft, progress, isFinished } = getChallengeProgress(challenge, challenge.mode === 'TEAM' ? teamStreak : (myParticipant?.currentStreak ?? 0), completedToday);
-
-  useEffect(() => {
-    if (isFinished && challenge && typeof window !== 'undefined') {
-      const storageKey = `seen_finish_${challenge.id}`;
-      if (!localStorage.getItem(storageKey)) {
-        // slight delay so progress bar paints to 100% first
-        setTimeout(() => setShowEndModal(true), 600);
-      }
-    }
-  }, [isFinished, challenge]);
+  const { currentDay, daysLeft, progress } = getChallengeProgress(challenge, challenge.mode === 'TEAM' ? teamStreak : (myParticipant?.currentStreak ?? 0), completedToday);
 
   const handleCloseEndModal = () => {
     if (challenge) localStorage.setItem(`seen_finish_${challenge.id}`, 'true');
