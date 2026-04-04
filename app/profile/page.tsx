@@ -54,6 +54,7 @@ export default function ProfilePage() {
       if (!res.ok) throw new Error('Error al eliminar la cuenta');
 
       // Clear local auth state and redirect
+      await signOut();
       router.replace('/login');
     } catch (err) {
       setError('Error al eliminar la cuenta. Intentá de nuevo.');
