@@ -12,6 +12,7 @@ import {
   subscribeToParticipants,
   subscribeToTodayLogs,
   getChallengeProgress,
+  archiveParticipant,
 } from '@/lib/challenges';
 import CompleteButton from '@/components/CompleteButton';
 import ParticipantList from '@/components/ParticipantList';
@@ -32,6 +33,7 @@ export default function ChallengePage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   // Track how many listeners have fired at least once
   const readyRef = useRef({ challenge: false, participants: false, logs: false });
@@ -246,6 +248,31 @@ export default function ChallengePage() {
         </h2>
         <ParticipantList participants={participants} currentUserId={user.uid} completedIds={completedIds} />
       </div>
+
+      {/* Archive / Abandon */}
+      {myParticipant && (
+        <div className="mb-10" style={{ textAlign: 'center' }}>
+          <button
+            className="btn btn-ghost"
+            style={{ color: 'var(--color-danger)', fontSize: '0.875rem' }}
+            disabled={isArchiving}
+            onClick={async () => {
+              if (confirm('¿Estás seguro que querés abandonar este desafío? Desaparecerá de tu lista.')) {
+                setIsArchiving(true);
+                try {
+                  await archiveParticipant(myParticipant.id);
+                  router.replace('/');
+                } catch (e) {
+                  console.error(e);
+                  setIsArchiving(false);
+                }
+              }
+            }}
+          >
+            {isArchiving ? 'Archivando...' : 'Abandonar desafío'}
+          </button>
+        </div>
+      )}
 
       <ChallengeCompletedModal
         show={showEndModal}

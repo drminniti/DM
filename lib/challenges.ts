@@ -33,6 +33,7 @@ export interface Participant {
     playerName: string;
     currentStreak: number;
     fcmToken?: string;
+    isArchived?: boolean;
 }
 
 export interface DailyLog {
@@ -116,7 +117,10 @@ export async function getUserChallenges(userId: string): Promise<Challenge[]> {
     );
     if (pSnap.empty) return [];
 
-    const challengeIds = [...new Set(pSnap.docs.map((d) => d.data().challengeId as string))];
+    const activeParticipantDocs = pSnap.docs.filter((d) => d.data().isArchived !== true);
+    if (activeParticipantDocs.length === 0) return [];
+
+    const challengeIds = [...new Set(activeParticipantDocs.map((d) => d.data().challengeId as string))];
 
     const challenges = await Promise.all(challengeIds.map((id) => getChallenge(id)));
     return challenges.filter(Boolean) as Challenge[];
@@ -170,7 +174,14 @@ export async function getParticipantByUser(
         )
     );
     if (snap.empty) return null;
-    return { id: snap.docs[0].id, ...snap.docs[0].data() } as Participant;
+    const data = snap.docs[0].data();
+    if (data.isArchived) return null; // Treat archived as if not joined
+    return { id: snap.docs[0].id, ...data } as Participant;
+}
+
+export async function archiveParticipant(participantId: string): Promise<void> {
+    const db = getFirebaseDb();
+    await updateDoc(doc(db, 'participants', participantId), { isArchived: true });
 }
 
 export async function updateParticipantFcmToken(participantId: string, token: string) {
@@ -250,7 +261,8 @@ export function subscribeToParticipants(
     const db = getFirebaseDb();
     const q = query(collection(db, 'participants'), where('challengeId', '==', challengeId));
     return onSnapshot(q, (snap) => {
-        callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Participant)));
+        const parts = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Participant));
+        callback(parts.filter(p => !p.isArchived));
     });
 }
 
