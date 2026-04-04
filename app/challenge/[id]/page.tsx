@@ -17,6 +17,7 @@ import CompleteButton from '@/components/CompleteButton';
 import ParticipantList from '@/components/ParticipantList';
 import StreakBadge from '@/components/StreakBadge';
 import NotificationButton from '@/components/NotificationButton';
+import ChallengeCompletedModal from '@/components/ChallengeCompletedModal';
 
 export default function ChallengePage() {
   const { user, loading } = useAuth();
@@ -30,6 +31,7 @@ export default function ChallengePage() {
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [initialLoading, setInitialLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [showEndModal, setShowEndModal] = useState(false);
 
   // Track how many listeners have fired at least once
   const readyRef = useRef({ challenge: false, participants: false, logs: false });
@@ -114,7 +116,22 @@ export default function ChallengePage() {
       ? Math.min(...participants.map((p) => p.currentStreak))
       : myParticipant?.currentStreak ?? 0;
 
-  const { currentDay, daysLeft, progress } = getChallengeProgress(challenge, challenge.mode === 'TEAM' ? teamStreak : (myParticipant?.currentStreak ?? 0), completedToday);
+  const { currentDay, daysLeft, progress, isFinished } = getChallengeProgress(challenge, challenge.mode === 'TEAM' ? teamStreak : (myParticipant?.currentStreak ?? 0), completedToday);
+
+  useEffect(() => {
+    if (isFinished && challenge && typeof window !== 'undefined') {
+      const storageKey = `seen_finish_${challenge.id}`;
+      if (!localStorage.getItem(storageKey)) {
+        // slight delay so progress bar paints to 100% first
+        setTimeout(() => setShowEndModal(true), 600);
+      }
+    }
+  }, [isFinished, challenge]);
+
+  const handleCloseEndModal = () => {
+    if (challenge) localStorage.setItem(`seen_finish_${challenge.id}`, 'true');
+    setShowEndModal(false);
+  };
 
   const handleCopyInvite = async () => {
     const url = `${window.location.origin}/join/${id}`;
@@ -229,6 +246,12 @@ export default function ChallengePage() {
         </h2>
         <ParticipantList participants={participants} currentUserId={user.uid} completedIds={completedIds} />
       </div>
+
+      <ChallengeCompletedModal
+        show={showEndModal}
+        onClose={handleCloseEndModal}
+        challengeName={challenge.name}
+      />
     </div>
   );
 }
