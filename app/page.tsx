@@ -19,7 +19,7 @@ interface ChallengeWithMeta {
 }
 
 export default function HomePage() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [challenges, setChallenges] = useState<ChallengeWithMeta[]>([]);
   const [fetching, setFetching] = useState(true);
@@ -61,16 +61,35 @@ export default function HomePage() {
 
   return (
     <div className="app-container">
-      <header className="page-header">
+      <header className="page-header" style={{ alignItems: 'center' }}>
         <div>
           <h1 className="page-title">Mis Desafíos</h1>
           <p className="page-subtitle">
             Hola, {user.displayName?.split(' ')[0] ?? 'Campeón'} 👋
           </p>
         </div>
-        <button id="signout-btn" className="btn-ghost" onClick={signOut} style={{ fontSize: '0.875rem' }}>
-          Salir
-        </button>
+        <Link href="/profile" style={{ display: 'block', flexShrink: 0 }}>
+          {user.photoURL ? (
+            <img
+              src={user.photoURL}
+              alt="Perfil"
+              style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--color-surface-2)' }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 44, height: 44, borderRadius: '50%',
+                background: 'var(--color-surface-2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.25rem', fontWeight: 600,
+                color: 'var(--color-accent)',
+                border: '2px solid transparent',
+              }}
+            >
+              {user.displayName?.charAt(0).toUpperCase() ?? '?'}
+            </div>
+          )}
+        </Link>
       </header>
 
       {fetching ? (
