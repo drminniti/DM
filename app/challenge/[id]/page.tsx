@@ -11,6 +11,7 @@ import {
   subscribeToChallenge,
   subscribeToParticipants,
   subscribeToTodayLogs,
+  getChallengeProgress,
 } from '@/lib/challenges';
 import CompleteButton from '@/components/CompleteButton';
 import ParticipantList from '@/components/ParticipantList';
@@ -103,12 +104,7 @@ export default function ChallengePage() {
     );
   }
 
-  const daysSince = Math.floor(
-    (Date.now() - (challenge.createdAt?.toMillis?.() ?? Date.now())) / (1000 * 60 * 60 * 24)
-  );
-  const currentDay = Math.min(daysSince + 1, challenge.totalDays);
-  const daysLeft = challenge.totalDays - daysSince;
-  const progress = currentDay / challenge.totalDays;
+  const notJoined = !myParticipant;
 
   const completedToday = myParticipant ? completedIds.has(myParticipant.id) : false;
 
@@ -118,7 +114,7 @@ export default function ChallengePage() {
       ? Math.min(...participants.map((p) => p.currentStreak))
       : myParticipant?.currentStreak ?? 0;
 
-  const notJoined = !myParticipant;
+  const { currentDay, daysLeft, progress } = getChallengeProgress(challenge, challenge.mode === 'TEAM' ? teamStreak : (myParticipant?.currentStreak ?? 0), completedToday);
 
   const handleCopyInvite = async () => {
     const url = `${window.location.origin}/join/${id}`;

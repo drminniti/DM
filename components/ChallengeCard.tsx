@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Challenge } from '@/lib/challenges';
+import { Challenge, getChallengeProgress } from '@/lib/challenges';
 import StreakBadge from './StreakBadge';
 
 interface ChallengeCardProps {
@@ -15,11 +15,7 @@ export default function ChallengeCard({
     streak,
     completedToday,
 }: ChallengeCardProps) {
-    const daysSince = Math.floor(
-        (Date.now() - (challenge.createdAt?.toMillis?.() ?? Date.now())) /
-        (1000 * 60 * 60 * 24)
-    );
-    const progress = Math.min(daysSince / challenge.totalDays, 1);
+    const { currentDay, progress } = getChallengeProgress(challenge, streak, completedToday);
 
     return (
         <Link href={`/challenge/${challenge.id}`} className="card card-link">
@@ -50,7 +46,7 @@ export default function ChallengeCard({
                 />
             </div>
             <div className="text-muted text-xs mt-2">
-                Día {Math.min(daysSince + 1, challenge.totalDays)} de {challenge.totalDays}
+                Día {currentDay} de {challenge.totalDays}
             </div>
         </Link>
     );

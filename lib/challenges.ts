@@ -43,6 +43,45 @@ export interface DailyLog {
     isCompleted: boolean;
 }
 
+export function getChallengeProgress(
+    challenge: Challenge,
+    highestStreak: number,
+    completedToday: boolean
+) {
+    const createdDate = challenge.createdAt?.toDate?.() || new Date();
+    // Use local timezone midnight to count discrete calendar days
+    const createdDayText = createdDate.toLocaleDateString('en-CA');
+    const todayText = new Date().toLocaleDateString('en-CA');
+    
+    const createdTz = new Date(createdDayText + 'T00:00:00');
+    const todayTz = new Date(todayText + 'T00:00:00');
+    
+    const calendarDaysElapsed = Math.round((todayTz.getTime() - createdTz.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Streaks shouldn't logically outpace calendar days elapsed + 1, but if they do 
+    // due to timezones, we trust the streak to ensure progress doesn't lag visually.
+    const streakDaysElapsed = highestStreak > 0 ? highestStreak - (completedToday ? 1 : 0) : 0;
+    
+    const effectiveDaysElapsed = Math.max(calendarDaysElapsed, streakDaysElapsed);
+    
+    const currentDay = Math.min(effectiveDaysElapsed + 1, challenge.totalDays);
+    const progress = Math.min(currentDay / challenge.totalDays, 1);
+    
+    const completedVal = highestStreak >= challenge.totalDays && completedToday;
+    let daysLeft = Math.max(0, challenge.totalDays - effectiveDaysElapsed);
+    
+    if (completedVal) {
+        daysLeft = 0;
+    }
+
+    return {
+        currentDay,
+        daysLeft,
+        progress,
+        isFinished: daysLeft === 0,
+    };
+}
+
 // ---------- CHALLENGES ----------
 
 export async function createChallenge(
