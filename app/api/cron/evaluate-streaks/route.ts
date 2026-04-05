@@ -12,8 +12,6 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Firebase Admin not configured' }, { status: 500 });
     }
 
-    const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
-
     // Get all active challenges
     const challengesSnap = await adminDb
         .collection('challenges')
@@ -26,6 +24,24 @@ export async function GET(req: NextRequest) {
         const challenge = challengeDoc.data();
         const challengeId = challengeDoc.id;
         const mode = challenge.mode as 'TEAM' | 'INDIVIDUAL';
+        const tz = challenge.timezone || 'America/Argentina/Buenos_Aires';
+        
+        const now = new Date();
+        const hourStr = new Intl.DateTimeFormat('en-CA', {
+            timeZone: tz,
+            hour: '2-digit',
+            hour12: false
+        }).format(now);
+
+        // En node, '00' o '24' pueden representar la medianoche dependiendo de la versión
+        if (hourStr !== '00' && hourStr !== '24') {
+            continue; // NO es medianoche local para este desafío, saltamos
+        }
+
+        // Si es medianoche, evaluamos si CUMPLIERON "AYER"
+        // Le restamos 2 horas a "ahora" para asegurarnos de caer en el día anterior local
+        const yesterdayTime = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+        const yesterdayString = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(yesterdayTime);
 
         // Get all participants
         const participantsSnap = await adminDb
@@ -35,11 +51,11 @@ export async function GET(req: NextRequest) {
 
         const participantIds = participantsSnap.docs.map((d) => d.id);
 
-        // Get today's logs for this challenge
+        // Get yesterday's logs for this challenge
         const logsSnap = await adminDb
             .collection('daily_logs')
             .where('challengeId', '==', challengeId)
-            .where('date', '==', today)
+            .where('date', '==', yesterdayString)
             .where('isCompleted', '==', true)
             .get();
 
@@ -76,5 +92,5 @@ export async function GET(req: NextRequest) {
         processed++;
     }
 
-    return NextResponse.json({ ok: true, challengesProcessed: processed, date: today });
+    return NextResponse.json({ ok: true, challengesProcessed: processed });
 }

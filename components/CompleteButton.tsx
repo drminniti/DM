@@ -6,6 +6,7 @@ import { markDayComplete } from '@/lib/challenges';
 interface CompleteButtonProps {
   challengeId: string;
   participantId: string;
+  timezone?: string;
   alreadyDone: boolean;
   onComplete?: () => void;
 }
@@ -28,6 +29,7 @@ interface Particle {
 export default function CompleteButton({
   challengeId,
   participantId,
+  timezone,
   alreadyDone,
   onComplete,
 }: CompleteButtonProps) {
@@ -103,7 +105,7 @@ export default function CompleteButton({
     if (done || loading) return;
     setLoading(true);
     try {
-      await markDayComplete(challengeId, participantId);
+      await markDayComplete(challengeId, participantId, timezone);
       setDone(true);
       launchCelebration();
       onComplete?.();

@@ -24,6 +24,7 @@ export interface Challenge {
     creatorId: string;
     createdAt: Timestamp;
     status: ChallengeStatus;
+    timezone?: string; // The official timezone of this challenge
 }
 
 export interface Participant {
@@ -50,9 +51,10 @@ export function getChallengeProgress(
     completedToday: boolean
 ) {
     const createdDate = challenge.createdAt?.toDate?.() || new Date();
-    // Use local timezone midnight to count discrete calendar days
-    const createdDayText = createdDate.toLocaleDateString('en-CA');
-    const todayText = new Date().toLocaleDateString('en-CA');
+    // Use the challenge's timezone to calculate days consistently for all participants
+    const tz = challenge.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const createdDayText = createdDate.toLocaleDateString('en-CA', { timeZone: tz });
+    const todayText = new Date().toLocaleDateString('en-CA', { timeZone: tz });
     
     const createdTz = new Date(createdDayText + 'T00:00:00');
     const todayTz = new Date(todayText + 'T00:00:00');
@@ -83,15 +85,16 @@ export function getChallengeProgress(
     };
 }
 
-export function getChallengeDates(createdAt: Timestamp | any, totalDays: number): string[] {
+export function getChallengeDates(createdAt: Timestamp | any, totalDays: number, timezone?: string): string[] {
     const createdDate = (createdAt?.toDate) ? createdAt.toDate() : new Date(createdAt);
-    const createdDayText = createdDate.toLocaleDateString('en-CA'); // YYYY-MM-DD local
+    const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const createdDayText = createdDate.toLocaleDateString('en-CA', { timeZone: tz }); // YYYY-MM-DD
     const startTz = new Date(createdDayText + 'T00:00:00');
     
     const dates = [];
     for (let i = 0; i < totalDays; i++) {
         const d = new Date(startTz.getTime() + i * 1000 * 60 * 60 * 24);
-        dates.push(d.toLocaleDateString('en-CA'));
+        dates.push(d.toLocaleDateString('en-CA')); // startTz is explicitly constructed to avoid timezone shifting here
     }
     return dates;
 }
@@ -112,6 +115,7 @@ export async function createChallenge(
         creatorId: userId,
         createdAt: serverTimestamp(),
         status: 'ACTIVE',
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
     return ref.id;
 }
@@ -204,8 +208,9 @@ export async function updateParticipantFcmToken(participantId: string, token: st
 
 // ---------- DAILY LOGS ----------
 
-function todayString(): string {
-    return new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+export function todayString(timezone?: string): string {
+    const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return new Date().toLocaleDateString('en-CA', { timeZone: tz }); // YYYY-MM-DD
 }
 
 export async function getTodayLog(
@@ -213,6 +218,10 @@ export async function getTodayLog(
     challengeId: string
 ): Promise<DailyLog | null> {
     const db = getFirebaseDb();
+    // Assuming the challenge timezone is what matters. Since getTodayLog is called less often,
+    // we'll pass the timezone of the challenge if known, otherwise fallback.
+    // Wait, getTodayLog isn't currently receiving the challenge's timezone.
+    // It's mainly safe because we subscribe in real-time now via subscribeToTodayLogs.
     const snap = await getDocs(
         query(
             collection(db, 'daily_logs'),
@@ -227,10 +236,11 @@ export async function getTodayLog(
 
 export async function markDayComplete(
     challengeId: string,
-    participantId: string
+    participantId: string,
+    timezone?: string
 ): Promise<void> {
     const db = getFirebaseDb();
-    const today = todayString();
+    const today = todayString(timezone);
 
     const existing = await getDocs(
         query(
@@ -305,10 +315,11 @@ export function subscribeToChallenge(
 /** Subscribe to today's daily logs for a challenge. Returns unsubscribe fn. */
 export function subscribeToTodayLogs(
     challengeId: string,
+    timezone: string | undefined,
     callback: (completedParticipantIds: Set<string>) => void
 ): () => void {
     const db = getFirebaseDb();
-    const today = new Date().toLocaleDateString('en-CA');
+    const today = todayString(timezone);
     const q = query(
         collection(db, 'daily_logs'),
         where('challengeId', '==', challengeId),

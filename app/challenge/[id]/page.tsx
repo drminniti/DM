@@ -57,8 +57,8 @@ export default function ChallengePage() {
     if (!id) return;
 
     function checkReady() {
-      const { challenge, participants, logs } = readyRef.current;
-      if (challenge && participants && logs) setInitialLoading(false);
+      const { challenge, participants } = readyRef.current;
+      if (challenge && participants) setInitialLoading(false);
     }
 
     const unsubChallenge = subscribeToChallenge(id, (ch) => {
@@ -79,12 +79,6 @@ export default function ChallengePage() {
       }
     });
 
-    const unsubLogs = subscribeToTodayLogs(id, (ids) => {
-      setCompletedIds(ids);
-      readyRef.current.logs = true;
-      checkReady();
-    });
-
     const unsubAllLogs = subscribeToAllLogs(id, (logsArray) => {
       setAllLogs(logsArray);
       readyRef.current.allLogs = true;
@@ -94,10 +88,18 @@ export default function ChallengePage() {
     return () => {
       unsubChallenge();
       unsubParticipants();
-      unsubLogs();
       unsubAllLogs();
     };
   }, [id, user]);
+
+  useEffect(() => {
+    if (!id || !challenge) return;
+    const unsubLogs = subscribeToTodayLogs(id, challenge.timezone, (ids) => {
+      setCompletedIds(ids);
+      readyRef.current.logs = true;
+    });
+    return () => unsubLogs();
+  }, [id, challenge?.timezone]);
 
   useEffect(() => {
     if (!challenge) return;
@@ -229,6 +231,7 @@ export default function ChallengePage() {
           <CompleteButton
             challengeId={id}
             participantId={myParticipant.id}
+            timezone={challenge?.timezone}
             alreadyDone={completedToday}
             onComplete={() => {/* onSnapshot handles the update automatically */}}
           />
@@ -274,7 +277,7 @@ export default function ChallengePage() {
           currentUserId={user.uid} 
           completedIds={completedIds} 
           allLogs={allLogs}
-          dates={challenge ? getChallengeDates(challenge.createdAt, challenge.totalDays) : []}
+          dates={challenge ? getChallengeDates(challenge.createdAt, challenge.totalDays, challenge.timezone) : []}
         />
       </div>
 

@@ -12,8 +12,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Firebase Admin not configured' }, { status: 500 });
   }
 
-  const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
-
   // Get all active challenges
   const challengesSnap = await adminDb
     .collection('challenges')
@@ -25,7 +23,22 @@ export async function GET(req: NextRequest) {
 
   for (const challengeDoc of challengesSnap.docs) {
     const challengeId = challengeDoc.id;
-    const challengeName = challengeDoc.data().name as string;
+    const challenge = challengeDoc.data();
+    const challengeName = challenge.name as string;
+    const tz = challenge.timezone || 'America/Argentina/Buenos_Aires';
+
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      hour: '2-digit',
+      hour12: false
+    });
+    const hourStr = formatter.format(now);
+
+    // Only send reminders at 20:00 (8 PM) local time
+    if (hourStr !== '20') continue;
+
+    const todayString = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(now);
 
     // Get all participants with an FCM token
     const participantsSnap = await adminDb
@@ -37,7 +50,7 @@ export async function GET(req: NextRequest) {
     const logsSnap = await adminDb
       .collection('daily_logs')
       .where('challengeId', '==', challengeId)
-      .where('date', '==', today)
+      .where('date', '==', todayString)
       .where('isCompleted', '==', true)
       .get();
 
@@ -81,6 +94,5 @@ export async function GET(req: NextRequest) {
     challengesChecked: challengesSnap.size,
     participantsReminded,
     notificationsSent,
-    date: today,
   });
 }
