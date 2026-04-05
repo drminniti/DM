@@ -11,8 +11,11 @@ import {
   subscribeToChallenge,
   subscribeToParticipants,
   subscribeToTodayLogs,
+  subscribeToAllLogs,
   getChallengeProgress,
+  getChallengeDates,
   archiveParticipant,
+  DailyLog,
 } from '@/lib/challenges';
 import CompleteButton from '@/components/CompleteButton';
 import ParticipantList from '@/components/ParticipantList';
@@ -34,9 +37,10 @@ export default function ChallengePage() {
   const [copied, setCopied] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
+  const [allLogs, setAllLogs] = useState<DailyLog[]>([]);
 
   // Track how many listeners have fired at least once
-  const readyRef = useRef({ challenge: false, participants: false, logs: false });
+  const readyRef = useRef({ challenge: false, participants: false, logs: false, allLogs: false });
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login');
@@ -81,10 +85,17 @@ export default function ChallengePage() {
       checkReady();
     });
 
+    const unsubAllLogs = subscribeToAllLogs(id, (logsArray) => {
+      setAllLogs(logsArray);
+      readyRef.current.allLogs = true;
+      checkReady();
+    });
+
     return () => {
       unsubChallenge();
       unsubParticipants();
       unsubLogs();
+      unsubAllLogs();
     };
   }, [id, user]);
 
@@ -258,7 +269,13 @@ export default function ChallengePage() {
         >
           Participantes ({participants.length})
         </h2>
-        <ParticipantList participants={participants} currentUserId={user.uid} completedIds={completedIds} />
+        <ParticipantList 
+          participants={participants} 
+          currentUserId={user.uid} 
+          completedIds={completedIds} 
+          allLogs={allLogs}
+          dates={challenge ? getChallengeDates(challenge.createdAt, challenge.totalDays) : []}
+        />
       </div>
 
       {/* Archive / Abandon */}

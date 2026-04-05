@@ -83,6 +83,19 @@ export function getChallengeProgress(
     };
 }
 
+export function getChallengeDates(createdAt: Timestamp | any, totalDays: number): string[] {
+    const createdDate = (createdAt?.toDate) ? createdAt.toDate() : new Date(createdAt);
+    const createdDayText = createdDate.toLocaleDateString('en-CA'); // YYYY-MM-DD local
+    const startTz = new Date(createdDayText + 'T00:00:00');
+    
+    const dates = [];
+    for (let i = 0; i < totalDays; i++) {
+        const d = new Date(startTz.getTime() + i * 1000 * 60 * 60 * 24);
+        dates.push(d.toLocaleDateString('en-CA'));
+    }
+    return dates;
+}
+
 // ---------- CHALLENGES ----------
 
 export async function createChallenge(
@@ -263,6 +276,18 @@ export function subscribeToParticipants(
     return onSnapshot(q, (snap) => {
         const parts = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Participant));
         callback(parts.filter(p => !p.isArchived));
+    });
+}
+
+/** Subscribe to all historical logs for a challenge. Useful for the compliance grid. */
+export function subscribeToAllLogs(
+    challengeId: string,
+    callback: (logs: DailyLog[]) => void
+): () => void {
+    const db = getFirebaseDb();
+    const q = query(collection(db, 'daily_logs'), where('challengeId', '==', challengeId));
+    return onSnapshot(q, (snap) => {
+        callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as DailyLog)));
     });
 }
 

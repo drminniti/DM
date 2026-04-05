@@ -1,18 +1,22 @@
 'use client';
 
-import { Participant } from '@/lib/challenges';
+import { Participant, DailyLog } from '@/lib/challenges';
 import StreakBadge from './StreakBadge';
 
 interface ParticipantListProps {
   participants: Participant[];
   currentUserId?: string;
   completedIds?: Set<string>; // real-time set of participantIds who completed today
+  allLogs?: DailyLog[];
+  dates?: string[]; // array of YYYY-MM-DD
 }
 
 export default function ParticipantList({
   participants,
   currentUserId,
   completedIds = new Set(),
+  allLogs = [],
+  dates = [],
 }: ParticipantListProps) {
   if (participants.length === 0) {
     return (
@@ -29,36 +33,75 @@ export default function ParticipantList({
       {sorted.map((p, i) => {
         const doneToday = completedIds.has(p.id);
         return (
-          <div className="participant-row" key={p.id}>
-            {/* Rank medal */}
-            <div className="participant-avatar" style={{ color: '#888', background: 'transparent', fontSize: '1rem' }}>
-              {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`}
+          <div className="participant-row" key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+              {/* Rank medal */}
+              <div className="participant-avatar" style={{ color: '#888', background: 'transparent', fontSize: '1rem' }}>
+                {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`}
+              </div>
+              {/* Initial avatar */}
+              <div className="participant-avatar" style={{ background: avatarColor(p.userId) }}>
+                {p.playerName.charAt(0).toUpperCase()}
+              </div>
+              {/* Name */}
+              <span className="participant-name">
+                {p.playerName}
+                {p.userId === currentUserId && (
+                  <span className="text-muted text-xs" style={{ marginLeft: 6 }}>(tú)</span>
+                )}
+              </span>
+              {/* Today status — live */}
+              <span
+                style={{
+                  fontSize: '1rem',
+                  marginRight: 4,
+                  opacity: doneToday ? 1 : 0.2,
+                  transition: 'opacity 400ms ease',
+                }}
+                title={doneToday ? 'Completó hoy' : 'Pendiente'}
+              >
+                ✅
+              </span>
+              {/* Streak */}
+              <StreakBadge streak={p.currentStreak} size="sm" />
             </div>
-            {/* Initial avatar */}
-            <div className="participant-avatar" style={{ background: avatarColor(p.userId) }}>
-              {p.playerName.charAt(0).toUpperCase()}
-            </div>
-            {/* Name */}
-            <span className="participant-name">
-              {p.playerName}
-              {p.userId === currentUserId && (
-                <span className="text-muted text-xs" style={{ marginLeft: 6 }}>(tú)</span>
-              )}
-            </span>
-            {/* Today status — live */}
-            <span
-              style={{
-                fontSize: '1rem',
-                marginRight: 4,
-                opacity: doneToday ? 1 : 0.2,
-                transition: 'opacity 400ms ease',
-              }}
-              title={doneToday ? 'Completó hoy' : 'Pendiente'}
-            >
-              ✅
-            </span>
-            {/* Streak */}
-            <StreakBadge streak={p.currentStreak} size="sm" />
+
+            {/* History Grid */}
+            {dates.length > 0 && (
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', paddingLeft: 46 }}>
+                {dates.map((date, idx) => {
+                  const log = allLogs.find((l) => l.participantId === p.id && l.date === date);
+                  const isDone = log?.isCompleted;
+                  // If date is today, and they haven't done it, it's neutral. If past, it's missed.
+                  const isPast = date < new Date().toLocaleDateString('en-CA');
+                  const isFuture = date > new Date().toLocaleDateString('en-CA');
+                  
+                  let bg = 'var(--color-surface-2)'; // neutral (today pending or future)
+                  let border = '1px solid transparent';
+                  if (isDone) {
+                    bg = 'var(--color-primary-dark)';
+                  } else if (isPast) {
+                    bg = 'rgba(255, 68, 68, 0.1)';
+                    border = '1px solid rgba(255, 68, 68, 0.2)';
+                  }
+                  
+                  return (
+                    <div
+                      key={date}
+                      title={`Día ${idx + 1}: ${date}${isDone ? ' (Completado)' : isPast ? ' (Fallado)' : ''}`}
+                      style={{
+                        width: 14,
+                        height: 14,
+                        borderRadius: 3,
+                        background: bg,
+                        border,
+                        transition: 'background 0.3s ease',
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
       })}
