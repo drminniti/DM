@@ -85,8 +85,8 @@ export function getChallengeProgress(
     };
 }
 
-export function getChallengeDates(createdAt: Timestamp | any, totalDays: number, timezone?: string): string[] {
-    const createdDate = (createdAt?.toDate) ? createdAt.toDate() : new Date(createdAt);
+export function getChallengeDates(createdAt: unknown, totalDays: number, timezone?: string): string[] {
+    const createdDate = (createdAt && typeof createdAt === 'object' && 'toDate' in createdAt && typeof createdAt.toDate === 'function') ? createdAt.toDate() : new Date(createdAt as string | number);
     const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     const createdDayText = createdDate.toLocaleDateString('en-CA', { timeZone: tz }); // YYYY-MM-DD
     const startTz = new Date(createdDayText + 'T00:00:00');

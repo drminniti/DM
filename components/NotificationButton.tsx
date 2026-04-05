@@ -13,9 +13,11 @@ export default function NotificationButton({ participantId }: NotificationButton
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (!('Notification' in window)) { setStatus('denied'); return; }
-    if (Notification.permission === 'granted') setStatus('granted');
-    else if (Notification.permission === 'denied') setStatus('denied');
+    setTimeout(() => {
+      if (!('Notification' in window)) { setStatus('denied'); return; }
+      if (Notification.permission === 'granted') setStatus('granted');
+      else if (Notification.permission === 'denied') setStatus('denied');
+    }, 0);
   }, []);
 
   const handleEnable = async () => {

@@ -67,13 +67,15 @@ export default function JoinPage() {
 
     if (!authReady || !challengeReady) return; // still waiting
 
-    if (user) {
-      // Session exists → join immediately (no login screen shown)
-      doJoin();
-    } else {
-      // Confirmed no session → show login button
-      setStage('needs-login');
-    }
+    setTimeout(() => {
+      if (user) {
+        // Session exists → join immediately (no login screen shown)
+        doJoin();
+      } else {
+        // Confirmed no session → show login button
+        setStage('needs-login');
+      }
+    }, 0);
   }, [loading, user, challengeName, stage, doJoin]);
 
   const handleSignIn = async () => {
