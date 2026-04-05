@@ -2,7 +2,7 @@
 
 **Versión de la Especificación:** 1.1.0
 **Fecha:** 2026-03-29
-**Arquitecto/Autor:** [Tu Nombre]
+**Arquitecto/Autor:** Damián Roque Minniti
 **Estado:** Listo para Generación
 
 ## 1. Visión General y Contexto
@@ -75,3 +75,18 @@
   "date": "string (YYYY-MM-DD)",
   "isCompleted": "boolean"
 }
+
+## 4. Features Adicionales Implementadas (Evolución del MVP)
+Durante el desarrollo se identificaron e incorporaron las siguientes funciones para mejorar significativamente la experiencia del usuario, retención y estabilidad técnica:
+
+### 4.1. UX & Retención
+* **Historial de Cumplimiento (Compliance Grid):** Visualización en grilla tipo calendario 🟩/⬜ bajo cada participante para permitir un rastreo de progreso rápido e intuitivo.
+* **Celebraciones y Gamificación:** Animaciones de confeti con motor de partículas (`ChallengeCompletedModal.tsx` y `CompleteButton.tsx`) al marcar un día o completar exitosamente el total del desafío.
+* **Archivado / Soft-Delete:** Funcionalidad para ocultar o abandonar "desafíos muertos" sin corromper la base de datos para el resto del equipo (`isArchived: true`).
+* **Perfil de Usuario:** Página (`/profile`) unificada con visualización del avatar de Google, permitiendo cerrar sesión o eliminar permanentemente la cuenta de usuario y sus datos de participación por privacidad.
+
+### 4.2. Técnico & PWA
+* **Real-time (onSnapshot):** Actualización instantánea de rachas, participantes y checkboxes en todos los dispositivos conectados sin necesidad de recargar la página.
+* **Notificaciones Push y Cron Jobs Adicionales:** Cron job secundario a las 20:00 (ARG) programado en Vercel para emitir Recordatorios Diarios a los usuarios (vía FCM/Push Notifications) que todavía no hayan cumplido con el objetivo del día.
+* **Progressive Web App (PWA):** Manifiesto, service workers (`firebase-messaging-sw.js`), iconos 192/512 y viewport configurados para poder anclar la web como "Aplicación" en iOS y Android.
+* **Autenticación Robusta:** Fallback a autenticación por redirección configurada con espera simultánea de estados (`getRedirectResult` + `onAuthStateChanged`) diseñado específicamente para evitar bloqueos de popup en Safari/iOS.
