@@ -27,16 +27,7 @@ export async function GET(req: NextRequest) {
         const tz = challenge.timezone || 'America/Argentina/Buenos_Aires';
         
         const now = new Date();
-        const hourStr = new Intl.DateTimeFormat('en-CA', {
-            timeZone: tz,
-            hour: '2-digit',
-            hour12: false
-        }).format(now);
-
-        // En node, '00' o '24' pueden representar la medianoche dependiendo de la versión
-        if (hourStr !== '00' && hourStr !== '24') {
-            continue; // NO es medianoche local para este desafío, saltamos
-        }
+        // Daily Cron: evaluamos todos globalmente porque Vercel Hobby solo permite 1 vez al día
 
         // Si es medianoche, evaluamos si CUMPLIERON "AYER"
         // Le restamos 2 horas a "ahora" para asegurarnos de caer en el día anterior local

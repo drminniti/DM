@@ -28,15 +28,8 @@ export async function GET(req: NextRequest) {
     const tz = challenge.timezone || 'America/Argentina/Buenos_Aires';
 
     const now = new Date();
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: tz,
-      hour: '2-digit',
-      hour12: false
-    });
-    const hourStr = formatter.format(now);
+    // Daily Cron: evaluamos todos globalmente porque Vercel Hobby solo permite 1 vez al día (a las 20:00 UTC)
 
-    // Only send reminders at 20:00 (8 PM) local time
-    if (hourStr !== '20') continue;
 
     const todayString = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(now);
 
@@ -61,7 +54,7 @@ export async function GET(req: NextRequest) {
     // Collect tokens of participants who haven't completed yet
     const tokensToNotify: string[] = [];
     participantsSnap.forEach((doc) => {
-      const { fcmToken, id: participantId } = { id: doc.id, ...doc.data() } as {
+      const { fcmToken } = { id: doc.id, ...doc.data() } as {
         id: string;
         fcmToken?: string;
         [key: string]: unknown;
