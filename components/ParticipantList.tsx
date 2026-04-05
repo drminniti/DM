@@ -79,7 +79,7 @@ export default function ParticipantList({
                   let bg = 'var(--color-surface-2)'; // neutral (today pending or future)
                   let border = '1px solid transparent';
                   if (isDone) {
-                    bg = 'var(--color-primary-dark)';
+                    bg = 'var(--color-accent)';
                   } else if (isPast) {
                     bg = 'rgba(255, 68, 68, 0.1)';
                     border = '1px solid rgba(255, 68, 68, 0.2)';
