@@ -85,7 +85,10 @@ Durante el desarrollo se identificaron e incorporaron las siguientes funciones p
 * **Archivado / Soft-Delete:** Funcionalidad para ocultar o abandonar "desafíos muertos" sin corromper la base de datos para el resto del equipo (`isArchived: true`).
 * **Perfil de Usuario:** Página (`/profile`) unificada con visualización del avatar de Google, permitiendo cerrar sesión o eliminar permanentemente la cuenta de usuario y sus datos de participación por privacidad.
 
-### 4.2. Técnico & PWA
+### 4.2. Administrativo & Control
+* **Gestión de Creador (Kick Player):** El creador de cada desafío tiene permisos de Administrador (`isAdmin`). Esto activa un botón de "Expulsar/Eliminar" (✕) en la lista de jugadores. Al accionarlo, se realiza un borrado físico y seguro mediante una ruta backend protegida (`/api/challenge/kick`) que elimina al usuario de la lista de participantes y limpia todos sus checks/logs de la base de datos para no penalizar la racha del equipo en el largo plazo.
+
+### 4.3. Técnico & PWA
 * **Real-time (onSnapshot):** Actualización instantánea de rachas, participantes y checkboxes en todos los dispositivos conectados sin necesidad de recargar la página.
 * **Notificaciones Push y Recordatorios Diarios:** Implementación mediante Firebase Cloud Messaging. Además se implementó un Cron Job en Vercel para emitir recordatorios a quienes faltan completar el reto.
 * **Husos Horarios Dinámicos (Timezones):** La evaluación de rachas y envíos de recordatorios (cron jobs) funcionan respetando 100% las horas locales del Creador del Desafío. Los crons se ejecutan cada 1 hora (`0 * * * *`) analizando en qué zona horaria del desafío es actualmente la medianoche (para reseteo) o las 20:00 hs (para recordatorios), asegurando que haya justicia global.
