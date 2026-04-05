@@ -87,6 +87,7 @@ Durante el desarrollo se identificaron e incorporaron las siguientes funciones p
 
 ### 4.2. Técnico & PWA
 * **Real-time (onSnapshot):** Actualización instantánea de rachas, participantes y checkboxes en todos los dispositivos conectados sin necesidad de recargar la página.
-* **Notificaciones Push y Cron Jobs Adicionales:** Cron job secundario a las 20:00 (ARG) programado en Vercel para emitir Recordatorios Diarios a los usuarios (vía FCM/Push Notifications) que todavía no hayan cumplido con el objetivo del día.
+* **Notificaciones Push y Recordatorios Diarios:** Implementación mediante Firebase Cloud Messaging. Además se implementó un Cron Job en Vercel para emitir recordatorios a quienes faltan completar el reto.
+* **Husos Horarios Dinámicos (Timezones):** La evaluación de rachas y envíos de recordatorios (cron jobs) funcionan respetando 100% las horas locales del Creador del Desafío. Los crons se ejecutan cada 1 hora (`0 * * * *`) analizando en qué zona horaria del desafío es actualmente la medianoche (para reseteo) o las 20:00 hs (para recordatorios), asegurando que haya justicia global.
 * **Progressive Web App (PWA):** Manifiesto, service workers (`firebase-messaging-sw.js`), iconos 192/512 y viewport configurados para poder anclar la web como "Aplicación" en iOS y Android.
 * **Autenticación Robusta:** Fallback a autenticación por redirección configurada con espera simultánea de estados (`getRedirectResult` + `onAuthStateChanged`) diseñado específicamente para evitar bloqueos de popup en Safari/iOS.
