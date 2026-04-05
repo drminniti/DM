@@ -24,14 +24,20 @@ export default function JoinPage() {
   // Fetch challenge name once
   useEffect(() => {
     if (!id) return;
-    getChallenge(id).then((ch) => {
-      if (!ch) {
-        setErrorMsg('Desafío no encontrado.');
-        setStage('error');
-      } else {
-        setChallengeName(ch.name);
-      }
-    });
+    getChallenge(id)
+      .then((ch) => {
+        if (!ch) {
+          setErrorMsg('Desafío no encontrado.');
+          setStage('error');
+        } else {
+          setChallengeName(ch.name);
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not fetch challenge name (likely needs login):', err);
+        // We set a generic name so the Join flow can continue to the Login screen
+        setChallengeName('este desafío de fitness');
+      });
   }, [id]);
 
   const doJoin = useCallback(async () => {
@@ -40,7 +46,8 @@ export default function JoinPage() {
     try {
       await joinChallenge(id, user.uid, user.displayName ?? 'Jugador');
       router.replace(`/challenge/${id}`);
-    } catch {
+    } catch (err) {
+      console.error('Error in doJoin:', err);
       setErrorMsg('Error al unirte. Intenta de nuevo.');
       setStage('error');
     }
