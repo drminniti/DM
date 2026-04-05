@@ -9,6 +9,8 @@ interface ParticipantListProps {
   completedIds?: Set<string>; // real-time set of participantIds who completed today
   allLogs?: DailyLog[];
   dates?: string[]; // array of YYYY-MM-DD
+  isAdmin?: boolean;
+  onKickParticipant?: (participantId: string, playerName: string) => void;
 }
 
 export default function ParticipantList({
@@ -17,6 +19,8 @@ export default function ParticipantList({
   completedIds = new Set(),
   allLogs = [],
   dates = [],
+  isAdmin = false,
+  onKickParticipant,
 }: ParticipantListProps) {
   if (participants.length === 0) {
     return (
@@ -50,6 +54,30 @@ export default function ParticipantList({
                   <span className="text-muted text-xs" style={{ marginLeft: 6 }}>(tú)</span>
                 )}
               </span>
+
+              {/* Admin Kick Button */}
+              {isAdmin && p.userId !== currentUserId && onKickParticipant && (
+                <button
+                  type="button"
+                  onClick={() => onKickParticipant(p.id, p.playerName)}
+                  title="Eliminar jugador"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--color-danger)',
+                    cursor: 'pointer',
+                    padding: '4px 8px',
+                    marginRight: 8,
+                    fontSize: '1.2rem',
+                    opacity: 0.6,
+                    transition: 'opacity 0.2s',
+                  }}
+                  onMouseOver={(e) => (e.currentTarget.style.opacity = '1')}
+                  onMouseOut={(e) => (e.currentTarget.style.opacity = '0.6')}
+                >
+                  ✕
+                </button>
+              )}
               {/* Today status — live */}
               <span
                 style={{

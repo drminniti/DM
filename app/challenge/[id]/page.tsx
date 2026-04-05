@@ -15,6 +15,7 @@ import {
   getChallengeProgress,
   getChallengeDates,
   archiveParticipant,
+  kickParticipant,
   DailyLog,
 } from '@/lib/challenges';
 import CompleteButton from '@/components/CompleteButton';
@@ -37,6 +38,7 @@ export default function ChallengePage() {
   const [copied, setCopied] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
+  const [isKicking, setIsKicking] = useState(false);
   const [allLogs, setAllLogs] = useState<DailyLog[]>([]);
 
   // Track how many listeners have fired at least once
@@ -167,6 +169,21 @@ export default function ChallengePage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleKickParticipant = async (participantId: string, playerName: string) => {
+    if (!window.confirm(`¿Seguro que quieres eliminar a ${playerName} del desafío? Esto borrará su progreso.`)) return;
+    
+    setIsKicking(true);
+    try {
+      await kickParticipant(id, participantId, user!.uid);
+      // We don't need to manually update state, onSnapshot will remove them
+    } catch (err) {
+      console.error(err);
+      alert('Error al eliminar al jugador.');
+    } finally {
+      setIsKicking(false);
+    }
+  };
+
   return (
     <div className="app-container">
       {/* Header */}
@@ -278,6 +295,8 @@ export default function ChallengePage() {
           completedIds={completedIds} 
           allLogs={allLogs}
           dates={challenge ? getChallengeDates(challenge.createdAt, challenge.totalDays, challenge.timezone) : []}
+          isAdmin={challenge?.creatorId === user.uid}
+          onKickParticipant={handleKickParticipant}
         />
       </div>
 

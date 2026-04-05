@@ -201,6 +201,22 @@ export async function archiveParticipant(participantId: string): Promise<void> {
     await updateDoc(doc(db, 'participants', participantId), { isArchived: true });
 }
 
+export async function kickParticipant(
+    challengeId: string,
+    participantId: string,
+    creatorUserId: string
+): Promise<void> {
+    const res = await fetch('/api/challenge/kick', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challengeId, participantIdToKick: participantId, creatorUserId }),
+    });
+
+    if (!res.ok) {
+        throw new Error('Failed to kick participant');
+    }
+}
+
 export async function updateParticipantFcmToken(participantId: string, token: string) {
     const db = getFirebaseDb();
     await updateDoc(doc(db, 'participants', participantId), { fcmToken: token });
