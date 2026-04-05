@@ -10,6 +10,7 @@ interface ParticipantListProps {
   allLogs?: DailyLog[];
   dates?: string[]; // array of YYYY-MM-DD
   isAdmin?: boolean;
+  creatorId?: string;
   onKickParticipant?: (participantId: string, playerName: string) => void;
 }
 
@@ -20,6 +21,7 @@ export default function ParticipantList({
   allLogs = [],
   dates = [],
   isAdmin = false,
+  creatorId,
   onKickParticipant,
 }: ParticipantListProps) {
   if (participants.length === 0) {
@@ -51,7 +53,10 @@ export default function ParticipantList({
               <span className="participant-name">
                 {p.playerName}
                 {p.userId === currentUserId && (
-                  <span className="text-muted text-xs" style={{ marginLeft: 6 }}>(tú)</span>
+                  <span className="text-muted text-xs" style={{ marginLeft: 4 }}>(tú)</span>
+                )}
+                {p.userId === creatorId && (
+                  <span title="Creador del Desafío" style={{ marginLeft: 6, fontSize: '0.8rem' }}>👑</span>
                 )}
               </span>
 

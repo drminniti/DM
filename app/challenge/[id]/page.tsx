@@ -296,6 +296,7 @@ export default function ChallengePage() {
           allLogs={allLogs}
           dates={challenge ? getChallengeDates(challenge.createdAt, challenge.totalDays, challenge.timezone) : []}
           isAdmin={challenge?.creatorId === user.uid}
+          creatorId={challenge?.creatorId}
           onKickParticipant={handleKickParticipant}
         />
       </div>
