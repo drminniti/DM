@@ -267,6 +267,8 @@ export async function markDayComplete(
         )
     );
 
+    let alreadyCompleted = false;
+
     if (existing.empty) {
         await addDoc(collection(db, 'daily_logs'), {
             participantId,
@@ -275,18 +277,33 @@ export async function markDayComplete(
             isCompleted: true,
         });
     } else {
-        await updateDoc(doc(db, 'daily_logs', existing.docs[0].id), {
-            isCompleted: true,
-        });
+        alreadyCompleted = existing.docs[0].data().isCompleted;
+        if (!alreadyCompleted) {
+            await updateDoc(doc(db, 'daily_logs', existing.docs[0].id), {
+                isCompleted: true,
+            });
+        }
     }
 
-    // Increment streak
+    // Evaluate and mathematically cap the streak so it never exceeds totalDays
     const pSnap = await getDoc(doc(db, 'participants', participantId));
-    if (pSnap.exists()) {
+    const cSnap = await getDoc(doc(db, 'challenges', challengeId));
+    
+    if (pSnap.exists() && cSnap.exists()) {
         const current = (pSnap.data().currentStreak as number) || 0;
-        await updateDoc(doc(db, 'participants', participantId), {
-            currentStreak: current + 1,
-        });
+        const totalDays = (cSnap.data().totalDays as number) || 1000;
+        
+        if (!alreadyCompleted) {
+            // Increment logic capped at totalDays
+            await updateDoc(doc(db, 'participants', participantId), {
+                currentStreak: Math.min(current + 1, totalDays),
+            });
+        } else if (current > totalDays) {
+            // Self-healing mechanism for users affected by the previous double-tap bug
+            await updateDoc(doc(db, 'participants', participantId), {
+                currentStreak: totalDays,
+            });
+        }
     }
 }
 
