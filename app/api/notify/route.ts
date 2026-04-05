@@ -3,7 +3,7 @@ import { adminDb, adminMessaging } from '@/lib/firebase-admin';
 
 export async function POST(req: NextRequest) {
     try {
-        const { challengeId, completedByName } = await req.json();
+        const { challengeId, completedByName, triggerParticipantId } = await req.json();
 
         if (!adminDb || !adminMessaging) {
             // Firebase Admin not configured — skip silently
@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
 
         const tokens: string[] = [];
         snap.forEach((doc) => {
+            if (doc.id === triggerParticipantId) return; // Skip the person who triggered it
             const token = doc.data().fcmToken as string;
             if (token) tokens.push(token);
         });
@@ -32,6 +33,12 @@ export async function POST(req: NextRequest) {
                 body: completedByName
                     ? `${completedByName} marcó su día como cumplido. ¡Tu turno!`
                     : '¡Un participante cumplió su desafío hoy!',
+            },
+            webpush: {
+                notification: {
+                    icon: '/icon-192.png',
+                    badge: '/icon-192.png',
+                }
             },
             tokens,
         };

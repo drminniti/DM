@@ -111,7 +111,12 @@ export default function CompleteButton({
       await fetch('/api/notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ challengeId }),
+        body: JSON.stringify({ 
+          challengeId, 
+          triggerParticipantId: participantId,
+          // Since we don't naturally have playerName here, we can pass it if we add it to props. 
+          // But it's fine, the backend handles missing completedByName.
+        }),
       });
     } catch (e) {
       console.error(e);

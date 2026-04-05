@@ -15,14 +15,9 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Handle background push notifications
+// Handle background push notifications for DATA payloads
+// Since we send NOTIFICATION payloads from the backend, Firebase handles them automatically.
 messaging.onBackgroundMessage(function (payload) {
-  const { title, body } = payload.notification || {};
-  self.registration.showNotification(title || 'DesafiosAPP', {
-    body: body || '¡Tienes una notificación!',
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    tag: 'desafios-notification',
-    renotify: true,
-  });
+  // If we had data-only payloads, we would manually call self.registration.showNotification here
+  console.log('[firebase-messaging-sw.js] Received background message ', payload);
 });
