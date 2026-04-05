@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
-import { reauthenticateWithPopup, GoogleAuthProvider, deleteUser } from 'firebase/auth';
-import { getFirebaseAuth } from '@/lib/firebase';
+import { reauthenticateWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/users';
 
 export default function ProfilePage() {
   const { user, loading, signOut } = useAuth();
@@ -13,6 +15,18 @@ export default function ProfilePage() {
   const [deleting, setDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    const db = getFirebaseDb();
+    const unsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
+      if (snap.exists()) {
+        setUserProfile(snap.data() as UserProfile);
+      }
+    });
+    return () => unsub();
+  }, [user]);
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login');
@@ -104,6 +118,40 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* Gamification Shelf */}
+      {userProfile && (
+        <div className="card mb-6" style={{ background: 'linear-gradient(135deg, rgba(255,160,0,0.1), rgba(255,87,34,0.05))', borderColor: 'rgba(255,160,0,0.2)' }}>
+          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+            <p className="text-muted text-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Puntos Globales</p>
+            <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--color-primary)', lineHeight: 1 }}>
+              {userProfile.points}
+            </div>
+          </div>
+          
+          <h3 className="text-sm font-semibold mb-4 text-center">Tus Insignias</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            <BadgeItem 
+               icon="🥉" 
+               name="Víspera" 
+               days="7D" 
+               count={userProfile.badges?.['7_DAYS'] || 0} 
+            />
+            <BadgeItem 
+               icon="🥈" 
+               name="Creciente" 
+               days="21D" 
+               count={userProfile.badges?.['21_DAYS'] || 0} 
+            />
+            <BadgeItem 
+               icon="🥇" 
+               name="Eterno" 
+               days="30D" 
+               count={userProfile.badges?.['30_DAYS'] || 0} 
+            />
+          </div>
+        </div>
+      )}
+
       {/* Sign out */}
       <div className="mb-4">
         <button
@@ -169,4 +217,37 @@ export default function ProfilePage() {
       )}
     </div>
   );
+}
+
+function BadgeItem({ icon, name, days, count }: { icon: string; name: string; days: string; count: number }) {
+    const isUnlocked = count > 0;
+    return (
+        <div style={{ 
+            display: 'flex', flexDirection: 'column', alignItems: 'center', 
+            background: isUnlocked ? 'var(--color-surface-2)' : 'rgba(255,255,255,0.02)',
+            padding: '16px 8px', borderRadius: 12,
+            border: isUnlocked ? '1px solid rgba(255,255,255,0.1)' : '1px dashed rgba(255,255,255,0.05)',
+            opacity: isUnlocked ? 1 : 0.4,
+            position: 'relative'
+        }}>
+            <div style={{ fontSize: '2rem', marginBottom: 8, filter: isUnlocked ? 'none' : 'grayscale(100%)' }}>
+                {icon}
+            </div>
+            <p style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text)' }}>{name}</p>
+            <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>{days}</span>
+            
+            {isUnlocked && (
+                <div style={{
+                    position: 'absolute', top: -6, right: -6,
+                    background: 'var(--color-primary)', color: '#000',
+                    width: 24, height: 24, borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '0.75rem', fontWeight: 'bold',
+                    boxShadow: '0 2px 8px rgba(0,230,118,0.4)'
+                }}>
+                    x{count}
+                </div>
+            )}
+        </div>
+    );
 }

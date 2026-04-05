@@ -12,6 +12,7 @@ import {
     Timestamp,
 } from 'firebase/firestore';
 import { getFirebaseDb } from './firebase';
+import { awardBadgeAndPoints } from './users';
 
 export type ChallengeMode = 'TEAM' | 'INDIVIDUAL';
 export type ChallengeStatus = 'ACTIVE' | 'COMPLETED';
@@ -295,9 +296,18 @@ export async function markDayComplete(
         
         if (!alreadyCompleted) {
             // Increment logic capped at totalDays
+            const newStreak = Math.min(current + 1, totalDays);
             await updateDoc(doc(db, 'participants', participantId), {
-                currentStreak: Math.min(current + 1, totalDays),
+                currentStreak: newStreak,
             });
+            
+            // Gamification Engine: Award Badges based on the newly reached streak
+            const userId = pSnap.data().userId;
+            if (userId) {
+                if (newStreak === 7) await awardBadgeAndPoints(userId, '7_DAYS');
+                if (newStreak === 21) await awardBadgeAndPoints(userId, '21_DAYS');
+                if (newStreak === 30) await awardBadgeAndPoints(userId, '30_DAYS');
+            }
         } else if (current > totalDays) {
             // Self-healing mechanism for users affected by the previous double-tap bug
             await updateDoc(doc(db, 'participants', participantId), {

@@ -12,6 +12,7 @@ import {
   AuthErrorCodes,
 } from 'firebase/auth';
 import { getFirebaseAuth } from '@/lib/firebase';
+import { ensureUserProfile } from '@/lib/users';
 
 interface AuthContextValue {
   user: User | null;
@@ -47,6 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authUnsub = onAuthStateChanged(auth, (u) => {
           setUser(u);
           setLoading(false);
+          // Fire-and-forget: ensure user profile exists in db
+          if (u) {
+            ensureUserProfile(u.uid).catch(console.error);
+          }
         });
       });
 
