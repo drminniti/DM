@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
+import { doc, getDoc, setDoc, increment } from 'firebase/firestore';
 import { getFirebaseDb } from './firebase';
 
 export interface UserProfile {
@@ -35,23 +35,24 @@ export async function ensureUserProfile(uid: string): Promise<void> {
     }
 }
 
+export type BadgeType = '7_DAYS' | '21_DAYS' | '30_DAYS';
+
 /**
  * Awards a badge to the user and increments their global points.
+ * Uses setDoc with merge:true to safely handle any existing document structure.
  */
-export async function awardBadgeAndPoints(uid: string, badgeType: '7_DAYS' | '21_DAYS' | '30_DAYS'): Promise<void> {
+export async function awardBadgeAndPoints(uid: string, badgeType: BadgeType): Promise<void> {
     const db = getFirebaseDb();
     const userRef = doc(db, 'users', uid);
-    
-    // Ensure it exists first, just in case (e.g., old user who never logged in again but completed a cron job, though cron doesn't do this)
+
+    // Ensure document exists with proper structure first
     await ensureUserProfile(uid);
 
-    let pointsToAdd = 0;
-    if (badgeType === '7_DAYS') pointsToAdd = 50;
-    if (badgeType === '21_DAYS') pointsToAdd = 150;
-    if (badgeType === '30_DAYS') pointsToAdd = 300;
+    const pointsToAdd = badgeType === '7_DAYS' ? 50 : badgeType === '21_DAYS' ? 150 : 300;
 
-    await updateDoc(userRef, {
+    // Use setDoc with merge so it works even if the document structure differs slightly
+    await setDoc(userRef, {
         points: increment(pointsToAdd),
-        [`badges.${badgeType}`]: increment(1)
-    });
+        [`badges.${badgeType}`]: increment(1),
+    }, { merge: true });
 }

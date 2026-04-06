@@ -12,7 +12,7 @@ import {
     Timestamp,
 } from 'firebase/firestore';
 import { getFirebaseDb } from './firebase';
-import { awardBadgeAndPoints } from './users';
+import { awardBadgeAndPoints, BadgeType } from './users';
 
 export type ChallengeMode = 'TEAM' | 'INDIVIDUAL';
 export type ChallengeStatus = 'ACTIVE' | 'COMPLETED';
@@ -255,7 +255,7 @@ export async function markDayComplete(
     challengeId: string,
     participantId: string,
     timezone?: string
-): Promise<void> {
+): Promise<BadgeType | null> {
     const db = getFirebaseDb();
     const today = todayString(timezone);
 
@@ -300,21 +300,24 @@ export async function markDayComplete(
             await updateDoc(doc(db, 'participants', participantId), {
                 currentStreak: newStreak,
             });
-            
+
             // Gamification Engine: Award Badges based on the newly reached streak
+            let badgeEarned: BadgeType | null = null;
             const userId = pSnap.data().userId;
             if (userId) {
-                if (newStreak === 7) await awardBadgeAndPoints(userId, '7_DAYS');
-                if (newStreak === 21) await awardBadgeAndPoints(userId, '21_DAYS');
-                if (newStreak === 30) await awardBadgeAndPoints(userId, '30_DAYS');
+                if (newStreak === 7)  { await awardBadgeAndPoints(userId, '7_DAYS');  badgeEarned = '7_DAYS'; }
+                if (newStreak === 21) { await awardBadgeAndPoints(userId, '21_DAYS'); badgeEarned = '21_DAYS'; }
+                if (newStreak === 30) { await awardBadgeAndPoints(userId, '30_DAYS'); badgeEarned = '30_DAYS'; }
             }
+            return badgeEarned;
         } else if (current > totalDays) {
-            // Self-healing mechanism for users affected by the previous double-tap bug
+            // Self-healing mechanism
             await updateDoc(doc(db, 'participants', participantId), {
                 currentStreak: totalDays,
             });
         }
     }
+    return null;
 }
 
 // ---------- REAL-TIME LISTENERS (onSnapshot) ----------

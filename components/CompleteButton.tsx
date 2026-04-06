@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { markDayComplete } from '@/lib/challenges';
+import type { BadgeType } from '@/lib/users';
 
 interface CompleteButtonProps {
   challengeId: string;
@@ -38,6 +39,7 @@ export default function CompleteButton({
   const [celebrating, setCelebrating] = useState(false);
   const [particles, setParticles] = useState<Particle[]>([]);
   const [showMessage, setShowMessage] = useState(false);
+  const [badgeEarned, setBadgeEarned] = useState<BadgeType | null>(null);
   const animFrameRef = useRef<number | null>(null);
   const particlesRef = useRef<Particle[]>([]);
 
@@ -110,8 +112,13 @@ export default function CompleteButton({
     if (done || loading) return;
     setLoading(true);
     try {
-      await markDayComplete(challengeId, participantId, timezone);
+      const badge = await markDayComplete(challengeId, participantId, timezone);
       setDone(true);
+      if (badge) {
+        setBadgeEarned(badge);
+        // auto-dismiss badge overlay after 4 seconds
+        setTimeout(() => setBadgeEarned(null), 4000);
+      }
       launchCelebration();
       onComplete?.();
 
@@ -126,7 +133,7 @@ export default function CompleteButton({
         }),
       });
     } catch (e) {
-      console.error(e);
+      console.error('markDayComplete error:', e);
     } finally {
       setLoading(false);
     }
@@ -134,6 +141,43 @@ export default function CompleteButton({
 
   return (
     <>
+      {/* Badge unlock overlay */}
+      {badgeEarned && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 10000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            pointerEvents: 'none',
+          }}
+        >
+          <div
+            style={{
+              background: 'rgba(0,0,0,0.92)',
+              border: '2px solid #ffd700',
+              borderRadius: 24,
+              padding: '32px 48px',
+              textAlign: 'center',
+              backdropFilter: 'blur(16px)',
+              boxShadow: '0 0 60px rgba(255,215,0,0.3)',
+              animation: 'celebPop 400ms cubic-bezier(0.34,1.56,0.64,1) forwards',
+            }}
+          >
+            <div style={{ fontSize: '3.5rem', marginBottom: 8 }}>
+              {badgeEarned === '7_DAYS' ? '🥉' : badgeEarned === '21_DAYS' ? '🥈' : '🥇'}
+            </div>
+            <div style={{ color: '#ffd700', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>
+              ¡Nuevo Logro!
+            </div>
+            <div style={{ color: '#fff', fontSize: '1.3rem', fontWeight: 800, marginBottom: 4 }}>
+              {badgeEarned === '7_DAYS' ? 'Víspera de Fuego' : badgeEarned === '21_DAYS' ? 'Fuego Creciente' : 'Fuego Eterno'}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem' }}>
+              +{badgeEarned === '7_DAYS' ? 50 : badgeEarned === '21_DAYS' ? 150 : 300} puntos
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Particle overlay */}
       {celebrating && (
         <div
