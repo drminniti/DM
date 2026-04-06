@@ -41,6 +41,11 @@ export default function CompleteButton({
   const animFrameRef = useRef<number | null>(null);
   const particlesRef = useRef<Particle[]>([]);
 
+  // Sync with parent: when the realtime listener confirms completion, update local state
+  useEffect(() => {
+    if (alreadyDone) setDone(true);
+  }, [alreadyDone]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
