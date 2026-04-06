@@ -18,6 +18,8 @@ export default function CreatePage() {
     const [loading, setLoading] = useState(false);
     const [inviteUrl, setInviteUrl] = useState('');
     const [copied, setCopied] = useState(false);
+    const [customMode, setCustomMode] = useState(false);
+    const [customInput, setCustomInput] = useState('');
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -111,18 +113,55 @@ export default function CreatePage() {
 
                 <div className="form-group">
                     <label className="form-label">Duración</label>
-                    <div className="days-selector">
+
+                    {/* Preset chips */}
+                    <div className="days-selector" style={{ marginBottom: 12 }}>
                         {DAY_OPTIONS.map((d) => (
                             <button
                                 key={d}
                                 type="button"
-                                className={`day-option ${totalDays === d ? 'active' : ''}`}
-                                onClick={() => setTotalDays(d)}
+                                className={`day-option ${totalDays === d && !customMode ? 'active' : ''}`}
+                                onClick={() => { setCustomMode(false); setTotalDays(d); }}
                             >
                                 {d}d
                             </button>
                         ))}
+                        <button
+                            type="button"
+                            className={`day-option ${customMode ? 'active' : ''}`}
+                            onClick={() => { setCustomMode(true); setCustomInput(String(totalDays)); }}
+                            style={{ minWidth: 80, fontSize: '0.8rem' }}
+                        >
+                            ✏️ Custom
+                        </button>
                     </div>
+
+                    {/* Custom input */}
+                    {customMode && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <input
+                                type="number"
+                                className="form-input"
+                                min={1}
+                                max={365}
+                                value={customInput}
+                                onChange={(e) => {
+                                    setCustomInput(e.target.value);
+                                    const v = parseInt(e.target.value);
+                                    if (!isNaN(v) && v >= 1 && v <= 365) setTotalDays(v);
+                                }}
+                                placeholder="Ingresá los días (1–365)"
+                                style={{ flex: 1 }}
+                                autoFocus
+                            />
+                            <span className="text-muted text-sm" style={{ whiteSpace: 'nowrap' }}>días</span>
+                        </div>
+                    )}
+
+                    {/* Trophy hint */}
+                    <p className="text-muted text-xs" style={{ marginTop: 10, lineHeight: 1.5 }}>
+                        🏆 Trofeos a los <strong>7</strong>, <strong>21</strong> y <strong>30</strong> días de racha — sin importar la duración del desafío.
+                    </p>
                 </div>
 
                 <div className="form-group">
