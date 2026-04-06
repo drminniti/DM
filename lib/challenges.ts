@@ -61,28 +61,22 @@ export function getChallengeProgress(
     const todayTz = new Date(todayText + 'T00:00:00');
     
     const calendarDaysElapsed = Math.round((todayTz.getTime() - createdTz.getTime()) / (1000 * 60 * 60 * 24));
-    
-    // Streaks shouldn't logically outpace calendar days elapsed + 1, but if they do 
-    // due to timezones, we trust the streak to ensure progress doesn't lag visually.
-    const streakDaysElapsed = highestStreak > 0 ? highestStreak - (completedToday ? 1 : 0) : 0;
-    
-    const effectiveDaysElapsed = Math.max(calendarDaysElapsed, streakDaysElapsed);
-    
-    const currentDay = Math.min(effectiveDaysElapsed + 1, challenge.totalDays);
-    const progress = Math.min(currentDay / challenge.totalDays, 1);
-    
-    const completedVal = highestStreak >= challenge.totalDays && completedToday;
-    let daysLeft = Math.max(0, challenge.totalDays - effectiveDaysElapsed);
-    
-    if (completedVal) {
-        daysLeft = 0;
-    }
+
+    // currentDay label = calendar elapsed + 1 (capped at totalDays)
+    const currentDay = Math.min(calendarDaysElapsed + 1, challenge.totalDays);
+
+    // Progress bar = days actually COMPLETED (streak), not just elapsed.
+    // This way Day 1 starts at 0% and moves only when you press the button.
+    const progress = Math.min(highestStreak / challenge.totalDays, 1);
+
+    const isFinished = highestStreak >= challenge.totalDays && completedToday;
+    const daysLeft = isFinished ? 0 : Math.max(0, challenge.totalDays - calendarDaysElapsed);
 
     return {
         currentDay,
         daysLeft,
         progress,
-        isFinished: daysLeft === 0,
+        isFinished,
     };
 }
 
