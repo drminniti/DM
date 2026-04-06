@@ -111,13 +111,15 @@ export default function LoginPage() {
                             </div>
                         )}
 
-                        {/* iOS Chrome: need to switch to Safari first */}
+                        {/* iOS Chrome: can add from Chrome but limited PWA */}
                         {platform === 'ios-chrome' && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                <InstallStep n={1} icon="🧭" text='Abrí este link en <strong>Safari</strong> (Chrome no permite instalar en iPhone)' />
-                                <InstallStep n={2} icon="⬆️" text='Tocá el botón <strong>Compartir</strong> (cuadrado con flecha ↑)' />
-                                <InstallStep n={3} icon="➕" text='Seleccioná <strong>"Agregar a pantalla de inicio"</strong>' />
-                                <InstallStep n={4} icon="✅" text='Tocá <strong>Agregar</strong> — ¡ya tenés el ícono!' />
+                                <InstallStep n={1} icon="⬆️" text='Tocá el botón <strong>Compartir</strong> (cuadrado con flecha ↑ abajo de la pantalla)' />
+                                <InstallStep n={2} icon="➕" text='Seleccioná <strong>"Agregar a pantalla de inicio"</strong>' />
+                                <InstallStep n={3} icon="✅" text='Tocá <strong>Agregar</strong> — ¡ya tenés el ícono!' />
+                                <p style={{ fontSize: '0.72rem', color: 'var(--color-text-dim)', marginTop: 4, lineHeight: 1.4 }}>
+                                    💡 Para las notificaciones push, usá Safari en vez de Chrome.
+                                </p>
                             </div>
                         )}
 
