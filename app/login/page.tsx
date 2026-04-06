@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 
-type Platform = 'ios' | 'android' | 'desktop' | 'installed';
+type Platform = 'ios-safari' | 'ios-chrome' | 'android' | 'desktop' | 'installed';
 
 function detectPlatform(): Platform {
     if (typeof window === 'undefined') return 'desktop';
@@ -13,7 +13,11 @@ function detectPlatform(): Platform {
         ('standalone' in navigator && (navigator as { standalone?: boolean }).standalone === true);
     if (isStandalone) return 'installed';
     const ua = navigator.userAgent;
-    if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
+    if (/iphone|ipad|ipod/i.test(ua)) {
+        // CriOS = Chrome on iOS, FxiOS = Firefox on iOS
+        const isChrome = /CriOS/i.test(ua);
+        return isChrome ? 'ios-chrome' : 'ios-safari';
+    }
     if (/android/i.test(ua)) return 'android';
     return 'desktop';
 }
@@ -36,6 +40,8 @@ export default function LoginPage() {
             setShowBanner(true);
         }
     }, []);
+
+    const iOSBrowser = platform === 'ios-safari' ? 'Safari' : platform === 'ios-chrome' ? 'Chrome' : null;
 
     const handleDismiss = () => {
         localStorage.setItem('install_banner_dismissed', '1');
@@ -89,14 +95,26 @@ export default function LoginPage() {
                             📲 Instalá la app
                         </p>
                         <p style={{ fontSize: '0.875rem', color: 'var(--color-text)', fontWeight: 600, marginBottom: 14 }}>
-                            {platform === 'ios'
+                            {platform === 'ios-safari'
                                 ? 'Para usarla como app nativa en iPhone:'
+                                : platform === 'ios-chrome'
+                                ? 'iPhone detectado — instalá en Safari:'
                                 : 'Para usarla como app nativa en Android:'}
                         </p>
 
-                        {platform === 'ios' && (
+                        {/* iOS Safari: already in the right browser, skip step 1 */}
+                        {platform === 'ios-safari' && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                <InstallStep n={1} icon="🧭" text='Abrí esta página en <strong>Safari</strong> (no Chrome)' />
+                                <InstallStep n={1} icon="⬆️" text='Tocá el botón <strong>Compartir</strong> (cuadrado con flecha ↑ abajo de la pantalla)' />
+                                <InstallStep n={2} icon="➕" text='Seleccioná <strong>"Agregar a pantalla de inicio"</strong>' />
+                                <InstallStep n={3} icon="✅" text='Tocá <strong>Agregar</strong> — ¡ya tenés el ícono!' />
+                            </div>
+                        )}
+
+                        {/* iOS Chrome: need to switch to Safari first */}
+                        {platform === 'ios-chrome' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                <InstallStep n={1} icon="🧭" text='Abrí este link en <strong>Safari</strong> (Chrome no permite instalar en iPhone)' />
                                 <InstallStep n={2} icon="⬆️" text='Tocá el botón <strong>Compartir</strong> (cuadrado con flecha ↑)' />
                                 <InstallStep n={3} icon="➕" text='Seleccioná <strong>"Agregar a pantalla de inicio"</strong>' />
                                 <InstallStep n={4} icon="✅" text='Tocá <strong>Agregar</strong> — ¡ya tenés el ícono!' />
