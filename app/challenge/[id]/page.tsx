@@ -23,6 +23,7 @@ import ParticipantList from '@/components/ParticipantList';
 import StreakBadge from '@/components/StreakBadge';
 import NotificationButton from '@/components/NotificationButton';
 import ChallengeCompletedModal from '@/components/ChallengeCompletedModal';
+import ShareButton from '@/components/ShareButton';
 
 export default function ChallengePage() {
   const { user, loading } = useAuth();
@@ -251,6 +252,20 @@ export default function ChallengePage() {
             timezone={challenge?.timezone}
             alreadyDone={completedToday}
             onComplete={() => {/* onSnapshot handles the update automatically */}}
+          />
+        </div>
+      )}
+
+      {/* Share streak card */}
+      {myParticipant && (myParticipant.currentStreak > 0) && (
+        <div className="mb-6">
+          <ShareButton
+            challengeName={challenge.name}
+            streak={challenge.mode === 'TEAM' ? teamStreak : (myParticipant.currentStreak ?? 0)}
+            totalDays={challenge.totalDays}
+            currentDay={currentDay}
+            playerName={user.displayName ?? 'Yo'}
+            mode={challenge.mode}
           />
         </div>
       )}
