@@ -82,8 +82,12 @@ Durante el desarrollo se identificaron e incorporaron las siguientes funciones p
 ### 4.1. UX & Retención
 * **Historial de Cumplimiento (Compliance Grid):** Visualización en grilla tipo calendario 🟩/⬜ bajo cada participante para permitir un rastreo de progreso rápido e intuitivo.
 * **Celebraciones y Gamificación:** Animaciones de confeti con motor de partículas (`ChallengeCompletedModal.tsx` y `CompleteButton.tsx`) al marcar un día o completar exitosamente el total del desafío.
+* **Sistema de Insignias y Puntos Globales:** Al alcanzar rachas de 7, 21 o 30 días consecutivos en un desafío, el sistema otorga insignias permanentes y puntos acumulados al perfil del usuario. Las insignias y puntos persisten en la colección `users` de Firestore incluso si se archiva o elimina el desafío. Se acumulan cada vez que se logra el hito. El perfil incluye una "Vitrina de Fuego" que muestra los puntos globales en tiempo real y las medallas desbloqueadas:
+  - 🥉 **Bronce (Víspera):** Racha de 7 días → +50 puntos
+  - 🥈 **Plata (Creciente):** Racha de 21 días → +150 puntos
+  - 🥇 **Oro (Eterno):** Racha de 30 días → +300 puntos
 * **Archivado / Soft-Delete:** Funcionalidad para ocultar o abandonar "desafíos muertos" sin corromper la base de datos para el resto del equipo (`isArchived: true`).
-* **Perfil de Usuario:** Página (`/profile`) unificada con visualización del avatar de Google, permitiendo cerrar sesión o eliminar permanentemente la cuenta de usuario y sus datos de participación por privacidad.
+* **Perfil de Usuario:** Página (`/profile`) con avatar de Google, vitrina de insignias y puntos globales en tiempo real, cierre de sesión y eliminación permanente de cuenta con re-autenticación de seguridad.
 
 ### 4.2. Administrativo & Control
 * **Gestión de Creador (Kick Player):** El creador de cada desafío tiene permisos de Administrador (`isAdmin`). Esto activa un botón de "Expulsar/Eliminar" (✕) en la lista de jugadores. Al accionarlo, se realiza un borrado físico y seguro mediante una ruta backend protegida (`/api/challenge/kick`) que elimina al usuario de la lista de participantes y limpia todos sus checks/logs de la base de datos para no penalizar la racha del equipo en el largo plazo.
