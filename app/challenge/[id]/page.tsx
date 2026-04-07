@@ -251,6 +251,8 @@ export default function ChallengePage() {
             participantId={myParticipant.id}
             timezone={challenge?.timezone}
             alreadyDone={completedToday}
+            playerName={user.displayName ?? undefined}
+            challengeName={challenge.name}
             onComplete={() => {/* onSnapshot handles the update automatically */}}
           />
         </div>

@@ -9,6 +9,8 @@ interface CompleteButtonProps {
   participantId: string;
   timezone?: string;
   alreadyDone: boolean;
+  playerName?: string;
+  challengeName?: string;
   onComplete?: () => void;
 }
 
@@ -32,6 +34,8 @@ export default function CompleteButton({
   participantId,
   timezone,
   alreadyDone,
+  playerName,
+  challengeName,
   onComplete,
 }: CompleteButtonProps) {
   const [done, setDone] = useState(alreadyDone);
@@ -128,8 +132,8 @@ export default function CompleteButton({
         body: JSON.stringify({ 
           challengeId, 
           triggerParticipantId: participantId,
-          // Since we don't naturally have playerName here, we can pass it if we add it to props. 
-          // But it's fine, the backend handles missing completedByName.
+          completedByName: playerName,
+          challengeName,
         }),
       });
     } catch (e) {

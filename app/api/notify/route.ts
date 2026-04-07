@@ -3,7 +3,7 @@ import { adminDb, adminMessaging } from '@/lib/firebase-admin';
 
 export async function POST(req: NextRequest) {
     try {
-        const { challengeId, completedByName, triggerParticipantId } = await req.json();
+        const { challengeId, completedByName, challengeName, triggerParticipantId } = await req.json();
 
         if (!adminDb || !adminMessaging) {
             // Firebase Admin not configured — skip silently
@@ -27,12 +27,17 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ ok: true, sent: 0 });
         }
 
+        // Build title: "🔥 Juan · 30 días sin azúcar"  (fallback if names missing)
+        const title = completedByName && challengeName
+            ? `🔥 ${completedByName} · ${challengeName}`
+            : completedByName
+            ? `🔥 ${completedByName} cumplió hoy`
+            : '🔥 ¡Alguien cumplió el desafío!';
+
         const message = {
             notification: {
-                title: '🔥 ¡Alguien cumplió!',
-                body: completedByName
-                    ? `${completedByName} marcó su día como cumplido. ¡Tu turno!`
-                    : '¡Un participante cumplió su desafío hoy!',
+                title,
+                body: '¡Cumplió su objetivo del día!',
             },
             webpush: {
                 notification: {
