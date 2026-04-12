@@ -16,6 +16,7 @@ export default function ProfilePage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [selectedBadge, setSelectedBadge] = useState<{name: string, description: string} | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -123,7 +124,7 @@ export default function ProfilePage() {
         <div className="card mb-6" style={{ background: 'linear-gradient(135deg, rgba(255,160,0,0.1), rgba(255,87,34,0.05))', borderColor: 'rgba(255,160,0,0.2)' }}>
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
             <p className="text-muted text-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Puntos Globales</p>
-            <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--color-primary)', lineHeight: 1 }}>
+            <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--color-accent)', lineHeight: 1 }}>
               {userProfile.points}
             </div>
           </div>
@@ -135,18 +136,30 @@ export default function ProfilePage() {
                name="Víspera" 
                days="7D" 
                count={userProfile.badges?.['7_DAYS'] || 0} 
+               onClick={() => setSelectedBadge({ 
+                 name: 'Víspera', 
+                 description: 'Otorgada por lograr una racha de 7 días consecutivos en cualquier desafío.' 
+               })}
             />
             <BadgeItem 
                icon="🥈" 
                name="Creciente" 
                days="21D" 
                count={userProfile.badges?.['21_DAYS'] || 0} 
+               onClick={() => setSelectedBadge({ 
+                 name: 'Creciente', 
+                 description: 'Otorgada por lograr una increíble racha de 21 días consecutivos. ¡Ya es un hábito!' 
+               })}
             />
             <BadgeItem 
                icon="🥇" 
                name="Eterno" 
                days="30D" 
                count={userProfile.badges?.['30_DAYS'] || 0} 
+               onClick={() => setSelectedBadge({ 
+                 name: 'Eterno', 
+                 description: 'Otorgada por alcanzar los 30 días consecutivos. Máximo nivel de resiliencia y compromiso.' 
+               })}
             />
           </div>
         </div>
@@ -215,19 +228,63 @@ export default function ProfilePage() {
           {error}
         </p>
       )}
+
+      {/* Badge Modal */}
+      {selectedBadge && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 24,
+            backdropFilter: 'blur(4px)'
+          }}
+          onClick={() => setSelectedBadge(null)}
+        >
+          <div 
+            className="card" 
+            style={{ 
+              maxWidth: 320, 
+              width: '100%',
+              textAlign: 'center', 
+              animation: 'pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              background: 'var(--color-surface)'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 style={{ fontSize: '1.25rem', marginBottom: 8, fontWeight: 700 }}>Insignia {selectedBadge.name}</h3>
+            <p className="text-muted" style={{ fontSize: '0.9rem', lineHeight: 1.5, marginBottom: 20 }}>
+              {selectedBadge.description}
+            </p>
+            <button 
+              className="btn btn-primary" 
+              onClick={() => setSelectedBadge(null)}
+            >
+              ¡Entendido!
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function BadgeItem({ icon, name, days, count }: { icon: string; name: string; days: string; count: number }) {
+function BadgeItem({ icon, name, days, count, onClick }: { icon: string; name: string; days: string; count: number, onClick: () => void }) {
     const isUnlocked = count > 0;
     return (
-        <div style={{ 
+        <div 
+          onClick={() => isUnlocked && onClick()}
+          style={{ 
             display: 'flex', flexDirection: 'column', alignItems: 'center', 
             background: isUnlocked ? 'var(--color-surface-2)' : 'rgba(255,255,255,0.02)',
             padding: '16px 8px', borderRadius: 12,
             border: isUnlocked ? '1px solid rgba(255,255,255,0.1)' : '1px dashed rgba(255,255,255,0.05)',
             opacity: isUnlocked ? 1 : 0.4,
+            cursor: isUnlocked ? 'pointer' : 'default',
             position: 'relative'
         }}>
             <div style={{ fontSize: '2rem', marginBottom: 8, filter: isUnlocked ? 'none' : 'grayscale(100%)' }}>
@@ -239,7 +296,7 @@ function BadgeItem({ icon, name, days, count }: { icon: string; name: string; da
             {isUnlocked && (
                 <div style={{
                     position: 'absolute', top: -6, right: -6,
-                    background: 'var(--color-primary)', color: '#000',
+                    background: 'var(--color-accent)', color: '#000',
                     width: 24, height: 24, borderRadius: '50%',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '0.75rem', fontWeight: 'bold',
