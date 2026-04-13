@@ -104,7 +104,10 @@ export async function GET(req: NextRequest) {
                     const winnerDoc = activeParticipants.find(d => d.id === winnerId);
                     if (winnerDoc && winnerDoc.data().userId) {
                         const uid = winnerDoc.data().userId;
-                        const pot = challenge.pot || 0;
+                        // Winner gets 50 points per eliminated opponent
+                        const eliminatedCount = allParticipantsSnap.docs.length - 1;
+                        const pot = eliminatedCount > 0 ? eliminatedCount * 50 : 0;
+                        
                         const userRef = adminDb.collection('users').doc(uid);
                         
                         await adminDb.runTransaction(async (t) => {

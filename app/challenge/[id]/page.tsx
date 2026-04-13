@@ -210,7 +210,7 @@ export default function ChallengePage() {
               <>
                 <span className="text-muted text-sm">·</span>
                 <span className="text-sm font-bold" style={{ color: '#ff3b30' }}>
-                  💰 Pozo: {challenge.pot || 0} pts
+                  💰 Premio Especial ☠️
                 </span>
               </>
             )}

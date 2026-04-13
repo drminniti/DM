@@ -45,7 +45,7 @@ export default function ChallengeCard({
                     </div>
                     {isSurvival && (
                         <div className="text-xs mt-1 font-bold" style={{ color: '#ff3b30' }}>
-                            💰 Pozo: {challenge.pot || 0} pts
+                            💰 Premio: 50 PTS x Jugador
                         </div>
                     )}
                 </div>

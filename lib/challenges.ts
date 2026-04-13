@@ -166,10 +166,7 @@ export async function joinChallenge(
     const challengeData = cSnap.data() as Challenge;
 
     if (challengeData.mode === 'SURVIVAL') {
-        // Entry is free! The system funds the pot to motivate players.
-        await updateDoc(doc(db, 'challenges', challengeId), {
-            pot: (challengeData.pot || 0) + 50
-        });
+        // Entry is free. Pot will be calculated automatically at the end by the Cron.
     }
 
     const ref = await addDoc(collection(db, 'participants'), {
