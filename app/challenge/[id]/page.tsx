@@ -255,6 +255,12 @@ export default function ChallengePage() {
         <Link href={`/join/${id}`} className="btn btn-primary btn-xl mb-6">
           Unirme al desafío
         </Link>
+      ) : myParticipant?.isEliminated ? (
+        <div className="mb-6 card text-center" style={{ padding: '24px', borderColor: 'var(--color-danger)', background: 'rgba(255, 59, 48, 0.05)' }}>
+          <p style={{ fontSize: '2rem', marginBottom: 8 }}>💀</p>
+          <p className="font-bold" style={{ color: 'var(--color-danger)' }}>Fuiste eliminado</p>
+          <p className="text-muted text-sm mt-2">Perdiste la racha y quedaste fuera de la carrera.</p>
+        </div>
       ) : isChallengeEnded ? (
         <div className="mb-6 card text-center" style={{ padding: '24px', borderColor: 'var(--color-primary)', background: 'rgba(0, 230, 118, 0.05)' }}>
           <p style={{ fontSize: '2rem', marginBottom: 8 }}>🏆</p>
