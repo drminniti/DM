@@ -156,7 +156,7 @@ export default function ChallengePage() {
       ? Math.min(...participants.map((p) => p.currentStreak))
       : myParticipant?.currentStreak ?? 0;
 
-  const { currentDay, daysLeft, progress } = getChallengeProgress(challenge, challenge.mode === 'TEAM' ? teamStreak : (myParticipant?.currentStreak ?? 0), completedToday);
+  const { currentDay, daysLeft, progress, isFinished } = getChallengeProgress(challenge, challenge.mode === 'TEAM' ? teamStreak : (myParticipant?.currentStreak ?? 0), completedToday);
 
   const handleCloseEndModal = () => {
     if (challenge) localStorage.setItem(`seen_finish_${challenge.id}`, 'true');
@@ -186,6 +186,7 @@ export default function ChallengePage() {
   };
 
   const isSurvival = challenge?.mode === 'SURVIVAL';
+  const isChallengeEnded = isFinished || challenge.status === 'COMPLETED';
   
   return (
     <div className="app-container" style={isSurvival ? { background: 'radial-gradient(circle at top, rgba(90,0,0,0.4) 0%, var(--color-background) 70%)' } : {}}>
@@ -254,6 +255,12 @@ export default function ChallengePage() {
         <Link href={`/join/${id}`} className="btn btn-primary btn-xl mb-6">
           Unirme al desafío
         </Link>
+      ) : isChallengeEnded ? (
+        <div className="mb-6 card text-center" style={{ padding: '24px', borderColor: 'var(--color-primary)', background: 'rgba(0, 230, 118, 0.05)' }}>
+          <p style={{ fontSize: '2rem', marginBottom: 8 }}>🏆</p>
+          <p className="font-bold text-accent">¡Desafío superado!</p>
+          <p className="text-muted text-sm mt-2">Ya no hay más días que marcar.</p>
+        </div>
       ) : (
         <div className="mb-6">
           <CompleteButton
