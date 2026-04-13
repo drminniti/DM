@@ -2,13 +2,15 @@
 
 import { useState } from 'react';
 
+import { ChallengeMode } from '@/lib/challenges';
+
 interface ShareButtonProps {
   challengeName: string;
   streak: number;
   totalDays: number;
   currentDay: number;
   playerName: string;
-  mode: 'TEAM' | 'INDIVIDUAL';
+  mode: ChallengeMode;
 }
 
 function drawRoundedRect(
@@ -87,7 +89,7 @@ async function generateShareImage(props: ShareButtonProps): Promise<Blob> {
   ctx.fillText(displayName, SIZE / 2, 270);
 
   // ── Mode pill ────────────────────────────────────────────────
-  const pillLabel = mode === 'TEAM' ? '👥 Desafío en Equipo' : '🧑 Desafío Individual';
+  const pillLabel = mode === 'TEAM' ? '👥 Desafío en Equipo' : mode === 'SURVIVAL' ? '☠️ Supervivencia' : '🧑 Desafío Individual';
   ctx.font = '28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   const pillW = ctx.measureText(pillLabel).width + 48;
   drawRoundedRect(ctx, (SIZE - pillW) / 2, 300, pillW, 48, 24);
