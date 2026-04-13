@@ -105,7 +105,7 @@ export async function createChallenge(
     userId: string
 ): Promise<string> {
     const db = getFirebaseDb();
-    const ref = await addDoc(collection(db, 'challenges'), {
+    const data: any = {
         name,
         totalDays,
         mode,
