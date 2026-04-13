@@ -11,6 +11,7 @@ import {
   Challenge,
 } from '@/lib/challenges';
 import ChallengeCard from '@/components/ChallengeCard';
+import BottomNav from '@/components/BottomNav';
 
 interface ChallengeWithMeta {
   challenge: Challenge;
@@ -134,7 +135,7 @@ export default function HomePage() {
 
       <div
         style={{
-          padding: '24px 0 40px',
+          padding: '24px 0 0',
           display: 'flex',
           flexDirection: 'column',
           gap: 12,
@@ -144,6 +145,7 @@ export default function HomePage() {
           + Crear Desafío
         </Link>
       </div>
+      <BottomNav />
     </div>
   );
 }

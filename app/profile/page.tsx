@@ -8,6 +8,7 @@ import { reauthenticateWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/users';
+import BottomNav from '@/components/BottomNav';
 
 export default function ProfilePage() {
   const { user, loading, signOut } = useAuth();
@@ -269,6 +270,8 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+      
+      <BottomNav />
     </div>
   );
 }

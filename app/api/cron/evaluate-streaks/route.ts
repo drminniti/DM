@@ -58,10 +58,29 @@ export async function GET(req: NextRequest) {
             (pid) => !completedParticipantIds.has(pid)
         );
 
-        if (failedParticipantIds.length === 0) {
+        const failedParticipants = participantsSnap.docs.filter(d => failedParticipantIds.includes(d.id));
+
+        if (failedParticipants.length === 0) {
             // Everyone completed — no resets needed
             processed++;
             continue;
+        }
+
+        // Apply point penalties to everyone who failed (-15 points, min 0)
+        // We do this individually before modifying the streaks
+        for (const pDoc of failedParticipants) {
+            const uid = pDoc.data().userId;
+            if (uid) {
+                // Read current points and subtract carefully
+                const userRef = adminDb.collection('users').doc(uid);
+                // We use a simple read-then-write fallback since batch increment with floor is tricky.
+                const uSnap = await userRef.get();
+                if (uSnap.exists) {
+                    const currentPts = uSnap.data()?.points || 0;
+                    const newPts = Math.max(0, currentPts - 15);
+                    await userRef.update({ points: newPts });
+                }
+            }
         }
 
         if (mode === 'INDIVIDUAL') {

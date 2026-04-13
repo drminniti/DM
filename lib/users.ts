@@ -4,6 +4,8 @@ import { getFirebaseDb } from './firebase';
 export interface UserProfile {
     uid: string;
     points: number;
+    displayName?: string;
+    photoURL?: string;
     badges: {
         '7_DAYS': number;
         '21_DAYS': number;
@@ -15,7 +17,7 @@ export interface UserProfile {
 /**
  * Ensures a user profile exists in the `users` collection.
  */
-export async function ensureUserProfile(uid: string): Promise<void> {
+export async function ensureUserProfile(uid: string, displayName?: string, photoURL?: string): Promise<void> {
     const db = getFirebaseDb();
     const userRef = doc(db, 'users', uid);
     const snap = await getDoc(userRef);
@@ -24,6 +26,8 @@ export async function ensureUserProfile(uid: string): Promise<void> {
         const newUser: UserProfile = {
             uid,
             points: 0,
+            displayName: displayName || 'Jugador',
+            photoURL: photoURL || '',
             badges: {
                 '7_DAYS': 0,
                 '21_DAYS': 0,
@@ -39,24 +43,35 @@ export type BadgeType = '7_DAYS' | '21_DAYS' | '30_DAYS';
 
 /**
  * Awards a badge to the user and increments their global points.
- *
- * NOTE: We must use updateDoc (not setDoc+merge) for nested field updates.
- * setDoc+merge with dot-notation keys (e.g. "badges.7_DAYS") creates a flat
- * root-level field instead of updating the nested `badges` map, which is why
- * the badge counter never incremented even though points did.
  */
 export async function awardBadgeAndPoints(uid: string, badgeType: BadgeType): Promise<void> {
     const db = getFirebaseDb();
     const userRef = doc(db, 'users', uid);
 
-    // Guarantee the document exists with the full badges structure before incrementing
     await ensureUserProfile(uid);
 
     const pointsToAdd = badgeType === '7_DAYS' ? 50 : badgeType === '21_DAYS' ? 150 : 300;
 
-    // updateDoc with dot-notation correctly targets the nested badges.<type> field
     await updateDoc(userRef, {
         points: increment(pointsToAdd),
         [`badges.${badgeType}`]: increment(1),
     });
+}
+
+/**
+ * Adds daily points and updates user profile info for the leaderboard
+ */
+export async function addDailyPoints(uid: string, displayName?: string, photoURL?: string): Promise<void> {
+    const db = getFirebaseDb();
+    const userRef = doc(db, 'users', uid);
+    
+    await ensureUserProfile(uid, displayName, photoURL);
+
+    const updates: Record<string, any> = {
+        points: increment(5),
+    };
+    if (displayName) updates.displayName = displayName;
+    if (photoURL) updates.photoURL = photoURL;
+
+    await updateDoc(userRef, updates);
 }

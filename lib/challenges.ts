@@ -295,15 +295,27 @@ export async function markDayComplete(
                 currentStreak: newStreak,
             });
 
-            // Gamification Engine: Award Badges based on the newly reached streak
-            let badgeEarned: BadgeType | null = null;
-            const userId = pSnap.data().userId;
+            const userId: string = pSnap.data().userId;
+            const playerName: string = pSnap.data().playerName || '';
+
             if (userId) {
+                // IMPORTANT: Wait for the dynamic import to avoid circular dependency issues
+                // or just call it directly since we import it at the top
+                const { addDailyPoints, awardBadgeAndPoints } = await import('./users');
+                
+                // Get the user from auth to pass the photoURL if possible
+                // since we don't have it directly in the participant doc easily
+                // For now we just pass playerName. photoURL will be fetched by other processes or left blank
+                await addDailyPoints(userId, playerName);
+
+                // Gamification Engine: Award Badges based on the newly reached streak
+                let badgeEarned: BadgeType | null = null;
                 if (newStreak === 7)  { await awardBadgeAndPoints(userId, '7_DAYS');  badgeEarned = '7_DAYS'; }
                 if (newStreak === 21) { await awardBadgeAndPoints(userId, '21_DAYS'); badgeEarned = '21_DAYS'; }
                 if (newStreak === 30) { await awardBadgeAndPoints(userId, '30_DAYS'); badgeEarned = '30_DAYS'; }
+                
+                return badgeEarned;
             }
-            return badgeEarned;
         } else if (current > totalDays) {
             // Self-healing mechanism
             await updateDoc(doc(db, 'participants', participantId), {
