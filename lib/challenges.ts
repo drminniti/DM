@@ -169,6 +169,11 @@ export async function joinChallenge(
         // Entry is free. Pot will be calculated automatically at the end by the Cron.
     }
 
+    const { currentDay } = getChallengeProgress(challengeData, 0, false);
+    if (currentDay > 1) {
+        throw new Error('TOO_LATE');
+    }
+
     const ref = await addDoc(collection(db, 'participants'), {
         challengeId,
         userId,

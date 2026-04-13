@@ -47,8 +47,11 @@ export default function JoinPage() {
       await joinChallenge(id, user.uid, user.displayName ?? 'Jugador');
       router.replace(`/challenge/${id}`);
     } catch (err) {
-      console.error('Error in doJoin:', err);
-      setErrorMsg('Error al unirte. Intenta de nuevo.');
+      if (err instanceof Error && err.message === 'TOO_LATE') {
+        setErrorMsg('El desafío ya comenzó. No puedes unirte después del Día 1.');
+      } else {
+        setErrorMsg('Error al unirte. Intenta de nuevo.');
+      }
       setStage('error');
     }
   }, [user, id, router]);
