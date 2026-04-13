@@ -185,33 +185,43 @@ export default function ChallengePage() {
     }
   };
 
+  const isSurvival = challenge?.mode === 'SURVIVAL';
+  
   return (
-    <div className="app-container">
+    <div className="app-container" style={isSurvival ? { background: 'radial-gradient(circle at top, rgba(90,0,0,0.4) 0%, var(--color-background) 70%)' } : {}}>
       {/* Header */}
       <header className="page-header">
         <div style={{ flex: 1 }}>
           <Link href="/" className="text-muted text-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 8 }}>
             ← Mis desafíos
           </Link>
-          <h1 className="page-title" style={{ fontSize: '1.5rem' }}>
+          <h1 className="page-title" style={{ fontSize: '1.5rem', color: isSurvival ? '#ffb3b0' : undefined }}>
             {challenge.name}
           </h1>
           <div className="flex items-center gap-3 mt-2">
-            <span className="text-muted text-sm">
-              {challenge.mode === 'TEAM' ? '👥 Equipo' : '🧑 Individual'}
+            <span className="text-muted text-sm" style={{ color: isSurvival ? '#ff3b30' : undefined, fontWeight: isSurvival ? 'bold' : 'normal' }}>
+              {challenge.mode === 'TEAM' ? '👥 Equipo' : isSurvival ? '☠️ Supervivencia' : '🧑 Individual'}
             </span>
             <span className="text-muted text-sm">·</span>
             <span className="text-muted text-sm">
               Día {currentDay} de {challenge.totalDays}
             </span>
+            {isSurvival && (
+              <>
+                <span className="text-muted text-sm">·</span>
+                <span className="text-sm font-bold" style={{ color: '#ff3b30' }}>
+                  💰 Pozo: {challenge.pot || 0} pts
+                </span>
+              </>
+            )}
           </div>
         </div>
       </header>
 
       {/* Progress */}
       <div className="mb-6">
-        <div className="progress-bar-track">
-          <div className="progress-bar-fill" style={{ width: `${Math.round(progress * 100)}%` }} />
+        <div className="progress-bar-track" style={isSurvival ? { background: 'rgba(255,0,0,0.1)' } : {}}>
+          <div className="progress-bar-fill" style={{ width: `${Math.round(progress * 100)}%`, background: isSurvival ? 'linear-gradient(90deg, #8b0000, #ff3b30)' : undefined }} />
         </div>
         <div className="flex justify-between mt-2">
           <span className="text-muted text-xs">{Math.round(progress * 100)}% completado</span>
@@ -222,7 +232,7 @@ export default function ChallengePage() {
       </div>
 
       {/* Live streak card */}
-      <div className="card mb-6" style={{ textAlign: 'center', padding: '24px 0' }}>
+      <div className="card mb-6" style={isSurvival ? { textAlign: 'center', padding: '24px 0', border: '1px solid rgba(255, 59, 48, 0.4)', background: 'rgba(40,0,0,0.5)' } : { textAlign: 'center', padding: '24px 0' }}>
         {challenge.mode === 'TEAM' ? (
           <>
             <div className="text-muted text-sm mb-4">Racha del equipo</div>
