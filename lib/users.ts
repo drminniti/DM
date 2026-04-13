@@ -96,16 +96,3 @@ export async function addDailyPoints(uid: string, displayName?: string, photoURL
     await updateDoc(userRef, updates);
 }
 
-/**
- * Deducts points for entering a survival challenge
- */
-export async function deductBuyInPoints(uid: string, amount: number): Promise<void> {
-    const db = getFirebaseDb();
-    const userRef = doc(db, 'users', uid);
-    
-    await ensureUserProfile(uid);
-
-    await updateDoc(userRef, {
-        points: increment(-amount),
-    });
-}

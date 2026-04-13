@@ -166,11 +166,9 @@ export async function joinChallenge(
     const challengeData = cSnap.data() as Challenge;
 
     if (challengeData.mode === 'SURVIVAL') {
-        const { deductBuyInPoints } = await import('./users');
-        await deductBuyInPoints(userId, 20); // 20 points entry fee
-        
+        // Entry is free! The system funds the pot to motivate players.
         await updateDoc(doc(db, 'challenges', challengeId), {
-            pot: (challengeData.pot || 0) + 20
+            pot: (challengeData.pot || 0) + 50
         });
     }
 

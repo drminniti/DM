@@ -207,7 +207,7 @@ export default function CreatePage() {
                     </div>
                     {mode === 'SURVIVAL' && (
                         <p className="text-xs mt-3" style={{ color: '#ff3b30', lineHeight: 1.4, padding: '8px 12px', background: 'rgba(255, 59, 48, 0.1)', borderRadius: 8 }}>
-                            ⚠️ <strong>Atención:</strong> Entrar cuesta <strong>20 PTS</strong> que van a un pozo acumulado. El último sobreviviente se lleva el pozo entero y la insignia exclusiva.
+                            ⚠️ <strong>Entrar es gratis.</strong> El sistema recompensa al último jugador en pie con <strong>50 PTS</strong> por cada participante eliminado y la insignia exclusiva de Superviviente.
                         </p>
                     )}
                 </div>
