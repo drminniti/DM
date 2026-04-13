@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(false);
           // Fire-and-forget: ensure user profile exists in db
           if (u) {
-            ensureUserProfile(u.uid).catch(console.error);
+            ensureUserProfile(u.uid, u.displayName || '', u.photoURL || '').catch(console.error);
           }
         });
       });

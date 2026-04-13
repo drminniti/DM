@@ -15,7 +15,7 @@ export interface UserProfile {
 }
 
 /**
- * Ensures a user profile exists in the `users` collection.
+ * Ensures a user profile exists in the `users` collection, and patches missing presentation info.
  */
 export async function ensureUserProfile(uid: string, displayName?: string, photoURL?: string): Promise<void> {
     const db = getFirebaseDb();
@@ -36,6 +36,19 @@ export async function ensureUserProfile(uid: string, displayName?: string, photo
             createdAt: Date.now(),
         };
         await setDoc(userRef, newUser);
+    } else {
+        const data = snap.data();
+        const updates: Record<string, any> = {};
+        
+        if (displayName && data.displayName !== displayName) updates.displayName = displayName;
+        if (photoURL && data.photoURL !== photoURL) updates.photoURL = photoURL;
+        
+        // Fix for legacy users who have absolutely no displayName field
+        if (!data.displayName && displayName) updates.displayName = displayName;
+
+        if (Object.keys(updates).length > 0) {
+            await updateDoc(userRef, updates);
+        }
     }
 }
 
