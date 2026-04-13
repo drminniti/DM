@@ -50,8 +50,9 @@ export default function ParticipantList({
                 {p.playerName.charAt(0).toUpperCase()}
               </div>
               {/* Name */}
-              <span className="participant-name">
+              <span className="participant-name" style={{ textDecoration: p.isEliminated ? 'line-through' : 'none', opacity: p.isEliminated ? 0.6 : 1 }}>
                 {p.playerName}
+                {p.isEliminated && <span title="Eliminado" style={{ marginLeft: 6, fontSize: '0.9rem' }}>💀</span>}
                 {p.userId === currentUserId && (
                   <span className="text-muted text-xs" style={{ marginLeft: 4 }}>(tú)</span>
                 )}
@@ -84,19 +85,21 @@ export default function ParticipantList({
                 </button>
               )}
               {/* Today status — live */}
-              <span
-                style={{
-                  fontSize: '1rem',
-                  marginRight: 4,
-                  opacity: doneToday ? 1 : 0.2,
-                  transition: 'opacity 400ms ease',
-                }}
-                title={doneToday ? 'Completó hoy' : 'Pendiente'}
-              >
-                ✅
-              </span>
+              {!p.isEliminated && (
+                <span
+                  style={{
+                    fontSize: '1rem',
+                    marginRight: 4,
+                    opacity: doneToday ? 1 : 0.2,
+                    transition: 'opacity 400ms ease',
+                  }}
+                  title={doneToday ? 'Completó hoy' : 'Pendiente'}
+                >
+                  ✅
+                </span>
+              )}
               {/* Streak */}
-              <StreakBadge streak={p.currentStreak} size="sm" />
+              {!p.isEliminated && <StreakBadge streak={p.currentStreak} size="sm" />}
             </div>
 
             {/* History Grid */}
