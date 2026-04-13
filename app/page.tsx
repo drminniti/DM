@@ -17,6 +17,7 @@ interface ChallengeWithMeta {
   challenge: Challenge;
   streak: number;
   completedToday: boolean;
+  isEliminated: boolean;
 }
 
 export default function HomePage() {
@@ -38,12 +39,13 @@ export default function HomePage() {
         list.map(async (ch) => {
           const participant = await getParticipantByUser(ch.id, user.uid);
           const streak = participant?.currentStreak ?? 0;
+          const isEliminated = participant?.isEliminated ?? false;
           let completedToday = false;
           if (participant) {
             const log = await getTodayLog(participant.id, ch.id);
             completedToday = log?.isCompleted ?? false;
           }
-          return { challenge: ch, streak, completedToday };
+          return { challenge: ch, streak, completedToday, isEliminated };
         })
       );
       setChallenges(withMeta);
@@ -122,12 +124,13 @@ export default function HomePage() {
           className="flex flex-col"
           style={{ gap: 12, flex: 1 }}
         >
-          {active.map(({ challenge, streak, completedToday }) => (
+          {active.map(({ challenge, streak, completedToday, isEliminated }) => (
             <ChallengeCard
               key={challenge.id}
               challenge={challenge}
               streak={streak}
               completedToday={completedToday}
+              isEliminated={isEliminated}
             />
           ))}
         </div>

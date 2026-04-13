@@ -10,6 +10,7 @@ export interface UserProfile {
         '7_DAYS': number;
         '21_DAYS': number;
         '30_DAYS': number;
+        'SURVIVOR': number;
     };
     createdAt: number;
 }
@@ -32,6 +33,7 @@ export async function ensureUserProfile(uid: string, displayName?: string, photo
                 '7_DAYS': 0,
                 '21_DAYS': 0,
                 '30_DAYS': 0,
+                'SURVIVOR': 0,
             },
             createdAt: Date.now(),
         };
@@ -52,18 +54,23 @@ export async function ensureUserProfile(uid: string, displayName?: string, photo
     }
 }
 
-export type BadgeType = '7_DAYS' | '21_DAYS' | '30_DAYS';
+export type BadgeType = '7_DAYS' | '21_DAYS' | '30_DAYS' | 'SURVIVOR';
 
 /**
  * Awards a badge to the user and increments their global points.
  */
-export async function awardBadgeAndPoints(uid: string, badgeType: BadgeType): Promise<void> {
+export async function awardBadgeAndPoints(uid: string, badgeType: BadgeType, customPoints?: number): Promise<void> {
     const db = getFirebaseDb();
     const userRef = doc(db, 'users', uid);
 
     await ensureUserProfile(uid);
 
-    const pointsToAdd = badgeType === '7_DAYS' ? 50 : badgeType === '21_DAYS' ? 150 : 300;
+    let pointsToAdd = 0;
+    if (customPoints !== undefined) {
+        pointsToAdd = customPoints;
+    } else {
+        pointsToAdd = badgeType === '7_DAYS' ? 50 : badgeType === '21_DAYS' ? 150 : badgeType === '30_DAYS' ? 300 : 0;
+    }
 
     await updateDoc(userRef, {
         points: increment(pointsToAdd),
@@ -87,4 +94,18 @@ export async function addDailyPoints(uid: string, displayName?: string, photoURL
     if (photoURL) updates.photoURL = photoURL;
 
     await updateDoc(userRef, updates);
+}
+
+/**
+ * Deducts points for entering a survival challenge
+ */
+export async function deductBuyInPoints(uid: string, amount: number): Promise<void> {
+    const db = getFirebaseDb();
+    const userRef = doc(db, 'users', uid);
+    
+    await ensureUserProfile(uid);
+
+    await updateDoc(userRef, {
+        points: increment(-amount),
+    });
 }

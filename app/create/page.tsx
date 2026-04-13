@@ -56,7 +56,7 @@ export default function CreatePage() {
                         {name}
                     </p>
                     <p className="text-muted text-sm mt-2">
-                        {mode === 'TEAM' ? '👥 Modo Equipo' : '🧑 Modo Individual'} · {totalDays} días
+                        {mode === 'TEAM' ? '👥 Modo Equipo' : mode === 'SURVIVAL' ? '☠️ Supervivencia' : '🧑 Modo Individual'} · {totalDays} días
                     </p>
                 </div>
 
@@ -175,7 +175,22 @@ export default function CreatePage() {
                             <span className="mode-option-icon">🧑</span>
                             <span className="mode-option-label">Individual</span>
                             <span className="text-xs text-muted" style={{ lineHeight: 1.3 }}>
-                                Cada uno mantiene su racha
+                                Todos mantienen su ritmo
+                            </span>
+                        </button>
+                        <button
+                            type="button"
+                            className={`mode-option ${mode === 'SURVIVAL' ? 'active' : ''}`}
+                            onClick={() => setMode('SURVIVAL')}
+                            style={{ 
+                                borderColor: mode === 'SURVIVAL' ? '#ff3b30' : undefined,
+                                background: mode === 'SURVIVAL' ? 'rgba(255, 59, 48, 0.1)' : undefined
+                            }}
+                        >
+                            <span className="mode-option-icon" style={{ filter: mode === 'SURVIVAL' ? 'none' : 'grayscale(1)' }}>☠️</span>
+                            <span className="mode-option-label" style={{ color: mode === 'SURVIVAL' ? '#ff3b30' : undefined }}>Supervivencia</span>
+                            <span className="text-xs text-muted" style={{ lineHeight: 1.3 }}>
+                                Fallar = Eliminado
                             </span>
                         </button>
                         <button
@@ -190,6 +205,11 @@ export default function CreatePage() {
                             </span>
                         </button>
                     </div>
+                    {mode === 'SURVIVAL' && (
+                        <p className="text-xs mt-3" style={{ color: '#ff3b30', lineHeight: 1.4, padding: '8px 12px', background: 'rgba(255, 59, 48, 0.1)', borderRadius: 8 }}>
+                            ⚠️ <strong>Atención:</strong> Entrar cuesta <strong>20 PTS</strong> que van a un pozo acumulado. El último sobreviviente se lleva el pozo entero y la insignia exclusiva.
+                        </p>
+                    )}
                 </div>
 
                 <div style={{ marginTop: 40 }}>

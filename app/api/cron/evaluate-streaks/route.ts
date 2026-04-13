@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     for (const challengeDoc of challengesSnap.docs) {
         const challenge = challengeDoc.data();
         const challengeId = challengeDoc.id;
-        const mode = challenge.mode as 'TEAM' | 'INDIVIDUAL';
+        const mode = challenge.mode as 'TEAM' | 'INDIVIDUAL' | 'SURVIVAL';
         const tz = challenge.timezone || 'America/Argentina/Buenos_Aires';
         
         const now = new Date();
@@ -35,12 +35,14 @@ export async function GET(req: NextRequest) {
         const yesterdayString = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(yesterdayTime);
 
         // Get all participants
-        const participantsSnap = await adminDb
+        const allParticipantsSnap = await adminDb
             .collection('participants')
             .where('challengeId', '==', challengeId)
             .get();
 
-        const participantIds = participantsSnap.docs.map((d) => d.id);
+        // Ignore already eliminated participants
+        const activeParticipants = allParticipantsSnap.docs.filter((d) => !d.data().isEliminated);
+        const participantIds = activeParticipants.map((d) => d.id);
 
         // Get yesterday's logs for this challenge
         const logsSnap = await adminDb
@@ -58,10 +60,10 @@ export async function GET(req: NextRequest) {
             (pid) => !completedParticipantIds.has(pid)
         );
 
-        const failedParticipants = participantsSnap.docs.filter(d => failedParticipantIds.includes(d.id));
+        const failedParticipants = activeParticipants.filter(d => failedParticipantIds.includes(d.id));
 
         if (failedParticipants.length === 0) {
-            // Everyone completed — no resets needed
+            // Everyone completed — no resets needed (or SURVIVAL check if totalDays reached, but handle simple for now)
             processed++;
             continue;
         }
@@ -83,7 +85,43 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        if (mode === 'INDIVIDUAL') {
+        if (mode === 'SURVIVAL') {
+            const batch = adminDb.batch();
+            for (const pid of failedParticipantIds) {
+                batch.update(adminDb.collection('participants').doc(pid), { isEliminated: true, currentStreak: 0 });
+            }
+            await batch.commit();
+
+            const survivorsCount = participantIds.length - failedParticipantIds.length;
+            
+            // If 1 or 0 players left, the game ends
+            if (survivorsCount <= 1) {
+                await adminDb.collection('challenges').doc(challengeId).update({ status: 'COMPLETED' });
+
+                // If exactly 1 survivor, they take the pot and the badge
+                if (survivorsCount === 1) {
+                    const winnerId = participantIds.find(pid => !failedParticipantIds.includes(pid));
+                    const winnerDoc = activeParticipants.find(d => d.id === winnerId);
+                    if (winnerDoc && winnerDoc.data().userId) {
+                        const uid = winnerDoc.data().userId;
+                        const pot = challenge.pot || 0;
+                        const userRef = adminDb.collection('users').doc(uid);
+                        
+                        await adminDb.runTransaction(async (t) => {
+                            const uSnap = await t.get(userRef);
+                            if (uSnap.exists) {
+                                const pts = uSnap.data()?.points || 0;
+                                const badges = uSnap.data()?.badges || {};
+                                t.update(userRef, { 
+                                    points: pts + pot,
+                                    'badges.SURVIVOR': (badges.SURVIVOR || 0) + 1
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+        } else if (mode === 'INDIVIDUAL') {
             // Only reset streaks of those who failed
             const batch = adminDb.batch();
             for (const pid of failedParticipantIds) {

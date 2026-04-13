@@ -162,6 +162,16 @@ export default function ProfilePage() {
                  description: 'Otorgada por alcanzar los 30 días consecutivos. Máximo nivel de resiliencia y compromiso.' 
                })}
             />
+            <BadgeItem 
+               icon="☠️" 
+               name="Superviviente" 
+               days="Ganador" 
+               count={userProfile.badges?.['SURVIVOR'] || 0} 
+               onClick={() => setSelectedBadge({ 
+                 name: 'Superviviente', 
+                 description: 'Otorgada por lograr ser el ÚLTIMO EN PIE en el modo Supervivencia. ¡Te llevaste un botín enorme!' 
+               })}
+            />
           </div>
         </div>
       )}

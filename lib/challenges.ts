@@ -14,7 +14,7 @@ import {
 import { getFirebaseDb } from './firebase';
 import { awardBadgeAndPoints, BadgeType } from './users';
 
-export type ChallengeMode = 'TEAM' | 'INDIVIDUAL';
+export type ChallengeMode = 'TEAM' | 'INDIVIDUAL' | 'SURVIVAL';
 export type ChallengeStatus = 'ACTIVE' | 'COMPLETED';
 
 export interface Challenge {
@@ -26,6 +26,7 @@ export interface Challenge {
     createdAt: Timestamp;
     status: ChallengeStatus;
     timezone?: string; // The official timezone of this challenge
+    pot?: number; // Total points bet in SURVIVAL mode
 }
 
 export interface Participant {
@@ -36,6 +37,7 @@ export interface Participant {
     currentStreak: number;
     fcmToken?: string;
     isArchived?: boolean;
+    isEliminated?: boolean;
 }
 
 export interface DailyLog {
@@ -111,7 +113,11 @@ export async function createChallenge(
         createdAt: serverTimestamp(),
         status: 'ACTIVE',
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    });
+    };
+    if (mode === 'SURVIVAL') {
+        data.pot = 0;
+    }
+    const ref = await addDoc(collection(db, 'challenges'), data);
     return ref.id;
 }
 
@@ -155,12 +161,26 @@ export async function joinChallenge(
     );
     if (!existing.empty) return existing.docs[0].id;
 
+    const cSnap = await getDoc(doc(db, 'challenges', challengeId));
+    if (!cSnap.exists()) throw new Error('Challenge not found');
+    const challengeData = cSnap.data() as Challenge;
+
+    if (challengeData.mode === 'SURVIVAL') {
+        const { deductBuyInPoints } = await import('./users');
+        await deductBuyInPoints(userId, 20); // 20 points entry fee
+        
+        await updateDoc(doc(db, 'challenges', challengeId), {
+            pot: (challengeData.pot || 0) + 20
+        });
+    }
+
     const ref = await addDoc(collection(db, 'participants'), {
         challengeId,
         userId,
         playerName,
         currentStreak: 0,
         fcmToken: '',
+        isEliminated: false
     });
     return ref.id;
 }
@@ -285,6 +305,8 @@ export async function markDayComplete(
     const cSnap = await getDoc(doc(db, 'challenges', challengeId));
     
     if (pSnap.exists() && cSnap.exists()) {
+        if (pSnap.data().isEliminated) return null; // Eliminated players cannot act
+
         const current = (pSnap.data().currentStreak as number) || 0;
         const totalDays = (cSnap.data().totalDays as number) || 1000;
         
