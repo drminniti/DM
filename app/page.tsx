@@ -246,18 +246,37 @@ export default function HomePage() {
         </>
       )}
 
-      <div
+      {/* Floating Action Button — always visible above nav */}
+      <Link
+        href="/create"
+        id="create-challenge-btn"
         style={{
-          padding: '24px 0 0',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
+          position: 'fixed',
+          bottom: 'calc(70px + env(safe-area-inset-bottom) + 16px)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 99,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '14px 28px',
+          background: 'var(--color-accent)',
+          color: '#000',
+          fontWeight: 800,
+          fontSize: '0.95rem',
+          borderRadius: 99,
+          boxShadow: '0 4px 24px rgba(0, 230, 118, 0.35)',
+          textDecoration: 'none',
+          whiteSpace: 'nowrap',
+          transition: 'transform 0.15s ease, box-shadow 0.15s ease',
         }}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateX(-50%) scale(1.05)'; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateX(-50%) scale(1)'; }}
       >
-        <Link href="/create" className="btn btn-primary" id="create-challenge-btn">
-          + Crear Desafío
-        </Link>
-      </div>
+        <span style={{ fontSize: '1.1rem' }}>+</span>
+        Crear Desafío
+      </Link>
+
       <BottomNav />
     </div>
   );
