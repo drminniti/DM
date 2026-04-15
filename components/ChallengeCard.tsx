@@ -9,6 +9,7 @@ interface ChallengeCardProps {
     streak: number;
     completedToday: boolean;
     isEliminated?: boolean;
+    isFinished?: boolean;
 }
 
 export default function ChallengeCard({
@@ -16,14 +17,17 @@ export default function ChallengeCard({
     streak,
     completedToday,
     isEliminated = false,
+    isFinished = false,
 }: ChallengeCardProps) {
-    const { currentDay, progress } = getChallengeProgress(challenge, streak, completedToday);
+    const { currentDay, progress, result } = getChallengeProgress(challenge, streak, completedToday);
 
     const isSurvival = challenge.mode === 'SURVIVAL';
 
     let cardStyle: React.CSSProperties = {};
     if (isEliminated) {
         cardStyle = { opacity: 0.5, filter: 'grayscale(100%)', background: 'var(--color-surface)', border: '1px solid var(--color-border)' };
+    } else if (isFinished) {
+        cardStyle = { opacity: 0.65, filter: 'grayscale(60%)', background: 'var(--color-surface)', border: '1px solid var(--color-border)' };
     } else if (isSurvival) {
         cardStyle = {
             background: 'linear-gradient(135deg, rgba(40, 0, 0, 0.8) 0%, rgba(10, 0, 0, 0.9) 100%)',
@@ -31,6 +35,9 @@ export default function ChallengeCard({
             boxShadow: 'inset 0 0 20px rgba(255, 0, 0, 0.05)',
         };
     }
+
+    const resultIcon = result === 'WON' ? '🏆' : result === 'ALMOST' ? '😅' : result === 'LOST' ? '💪' : null;
+    const resultLabel = result === 'WON' ? 'Superado' : result === 'ALMOST' ? 'Casi lo lograste' : result === 'LOST' ? 'No llegaste' : null;
 
     return (
         <Link href={`/challenge/${challenge.id}`} className="card card-link" style={cardStyle}>
@@ -64,12 +71,17 @@ export default function ChallengeCard({
                     className="progress-bar-fill"
                     style={{ 
                         width: `${Math.round(progress * 100)}%`, 
-                        background: isEliminated ? 'var(--color-danger)' : isSurvival ? 'linear-gradient(90deg, #8b0000, #ff3b30)' : undefined 
+                        background: isEliminated ? 'var(--color-danger)' : isFinished ? 'var(--color-text-muted)' : isSurvival ? 'linear-gradient(90deg, #8b0000, #ff3b30)' : undefined 
                     }}
                 />
             </div>
             <div className="text-muted text-xs mt-2" style={{ color: isEliminated ? 'var(--color-danger)' : isSurvival ? 'rgba(255,59,48,0.8)' : undefined, fontWeight: isEliminated ? 'bold' : 'normal' }}>
-                {isEliminated ? '💀 ELIMINADO' : `Día ${currentDay} de ${challenge.totalDays}`}
+                {isEliminated
+                    ? '💀 ELIMINADO'
+                    : isFinished && resultLabel
+                    ? `${resultIcon} ${resultLabel}`
+                    : `Día ${currentDay} de ${challenge.totalDays}`
+                }
             </div>
         </Link>
     );

@@ -9,6 +9,7 @@ import {
   getParticipantByUser,
   getTodayLog,
   Challenge,
+  getChallengeProgress,
 } from '@/lib/challenges';
 import ChallengeCard from '@/components/ChallengeCard';
 import BottomNav from '@/components/BottomNav';
@@ -60,7 +61,15 @@ export default function HomePage() {
 
   if (loading || !user) return null;
 
-  const active = challenges.filter((c) => c.challenge.status === 'ACTIVE');
+  const active = challenges.filter(({ challenge, streak, completedToday }) => {
+    const { isFinished } = getChallengeProgress(challenge, streak, completedToday);
+    return !isFinished;
+  });
+
+  const finished = challenges.filter(({ challenge, streak, completedToday }) => {
+    const { isFinished } = getChallengeProgress(challenge, streak, completedToday);
+    return isFinished;
+  });
 
   return (
     <div className="app-container">
@@ -100,40 +109,80 @@ export default function HomePage() {
           <span className="spinner" />
           <span className="text-muted">Cargando...</span>
         </div>
-      ) : active.length === 0 ? (
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            gap: 16,
-            paddingBottom: 80,
-          }}
-        >
-          <div style={{ fontSize: '3.5rem' }}>🎯</div>
-          <p className="font-bold" style={{ fontSize: '1.125rem' }}>
-            Sin desafíos activos
-          </p>
-          <p className="text-muted text-sm">Crea uno nuevo o únete con un enlace.</p>
-        </div>
       ) : (
-        <div
-          className="flex flex-col"
-          style={{ gap: 12, flex: 1 }}
-        >
-          {active.map(({ challenge, streak, completedToday, isEliminated }) => (
-            <ChallengeCard
-              key={challenge.id}
-              challenge={challenge}
-              streak={streak}
-              completedToday={completedToday}
-              isEliminated={isEliminated}
-            />
-          ))}
-        </div>
+        <>
+          {/* Active challenges */}
+          {active.length === 0 ? (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                gap: 16,
+                paddingBottom: 24,
+                paddingTop: 24,
+              }}
+            >
+              <div style={{ fontSize: '3.5rem' }}>🎯</div>
+              <p className="font-bold" style={{ fontSize: '1.125rem' }}>
+                Sin desafíos activos
+              </p>
+              <p className="text-muted text-sm">Crea uno nuevo o únete con un enlace.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col" style={{ gap: 12, flex: 1 }}>
+              {active.map(({ challenge, streak, completedToday, isEliminated }) => (
+                <ChallengeCard
+                  key={challenge.id}
+                  challenge={challenge}
+                  streak={streak}
+                  completedToday={completedToday}
+                  isEliminated={isEliminated}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Finished challenges — collapsible section */}
+          {finished.length > 0 && (
+            <details style={{ marginTop: 32 }}>
+              <summary
+                style={{
+                  cursor: 'pointer',
+                  listStyle: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  color: 'var(--color-text-muted)',
+                  paddingBottom: 12,
+                  borderBottom: '1px solid var(--color-border)',
+                  userSelect: 'none',
+                }}
+              >
+                <span style={{ transition: 'transform 0.2s' }}>▶</span>
+                Finalizados ({finished.length})
+              </summary>
+              <div className="flex flex-col" style={{ gap: 12, marginTop: 12 }}>
+                {finished.map(({ challenge, streak, completedToday, isEliminated }) => (
+                  <ChallengeCard
+                    key={challenge.id}
+                    challenge={challenge}
+                    streak={streak}
+                    completedToday={completedToday}
+                    isEliminated={isEliminated}
+                    isFinished
+                  />
+                ))}
+              </div>
+            </details>
+          )}
+        </>
       )}
 
       <div
