@@ -41,8 +41,8 @@ export default function ChallengeCard({
 
     return (
         <Link href={`/challenge/${challenge.id}`} className="card card-link" style={cardStyle}>
-            <div className="flex items-center justify-between mb-4">
-                <div>
+            <div className="flex items-center justify-between mb-4" style={{ gap: 12 }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
                     <div className="font-bold" style={{ fontSize: '1rem', textDecoration: isEliminated ? 'line-through' : 'none', color: isSurvival && !isEliminated ? '#ffb3b0' : undefined }}>
                         {challenge.name}
                     </div>
@@ -56,7 +56,7 @@ export default function ChallengeCard({
                         </div>
                     )}
                 </div>
-                <div className="flex flex-col items-center" style={{ gap: 4 }}>
+                <div className="flex flex-col items-center" style={{ gap: 4, flexShrink: 0 }}>
                     {completedToday && !isEliminated && (
                         <span style={{ fontSize: '1.25rem' }} title="Completado hoy">
                             {isSurvival ? '🩸' : '✅'}
