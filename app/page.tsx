@@ -71,6 +71,29 @@ export default function HomePage() {
     return isFinished;
   });
 
+  // Group active challenges by mode
+  const groups: { mode: string; icon: string; label: string; accent?: string; items: typeof active }[] = [
+    {
+      mode: 'SURVIVAL',
+      icon: '☠️',
+      label: 'Supervivencia',
+      accent: '#ff3b30',
+      items: active.filter(c => c.challenge.mode === 'SURVIVAL'),
+    },
+    {
+      mode: 'INDIVIDUAL',
+      icon: '🧑',
+      label: 'Individual',
+      items: active.filter(c => c.challenge.mode === 'INDIVIDUAL'),
+    },
+    {
+      mode: 'TEAM',
+      icon: '👥',
+      label: 'Equipo',
+      items: active.filter(c => c.challenge.mode === 'TEAM'),
+    },
+  ].filter(g => g.items.length > 0);
+
   return (
     <div className="app-container">
       <header className="page-header" style={{ alignItems: 'center' }}>
@@ -111,7 +134,7 @@ export default function HomePage() {
         </div>
       ) : (
         <>
-          {/* Active challenges */}
+          {/* Active challenges grouped by mode */}
           {active.length === 0 ? (
             <div
               style={{
@@ -132,15 +155,53 @@ export default function HomePage() {
               <p className="text-muted text-sm">Crea uno nuevo o únete con un enlace.</p>
             </div>
           ) : (
-            <div className="flex flex-col" style={{ gap: 12, flex: 1 }}>
-              {active.map(({ challenge, streak, completedToday, isEliminated }) => (
-                <ChallengeCard
-                  key={challenge.id}
-                  challenge={challenge}
-                  streak={streak}
-                  completedToday={completedToday}
-                  isEliminated={isEliminated}
-                />
+            <div className="flex flex-col" style={{ gap: 28, flex: 1 }}>
+              {groups.map(({ mode, icon, label, accent, items }) => (
+                <div key={mode}>
+                  {/* Section header */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    marginBottom: 12,
+                    paddingBottom: 8,
+                    borderBottom: `1px solid ${accent ? 'rgba(255,59,48,0.25)' : 'var(--color-border)'}`,
+                  }}>
+                    <span style={{ fontSize: '1rem' }}>{icon}</span>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      color: accent ?? 'var(--color-text-muted)',
+                    }}>
+                      {label}
+                    </span>
+                    <span style={{
+                      fontSize: '0.65rem',
+                      fontWeight: 600,
+                      color: accent ?? 'var(--color-text-muted)',
+                      background: accent ? 'rgba(255,59,48,0.1)' : 'var(--color-surface-2)',
+                      borderRadius: 99,
+                      padding: '1px 8px',
+                      marginLeft: 2,
+                    }}>
+                      {items.length}
+                    </span>
+                  </div>
+                  {/* Cards */}
+                  <div className="flex flex-col" style={{ gap: 12 }}>
+                    {items.map(({ challenge, streak, completedToday, isEliminated }) => (
+                      <ChallengeCard
+                        key={challenge.id}
+                        challenge={challenge}
+                        streak={streak}
+                        completedToday={completedToday}
+                        isEliminated={isEliminated}
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           )}
