@@ -1,6 +1,6 @@
 'use client';
 
-import { Participant, DailyLog, Challenge, isSurvivalEliminated } from '@/lib/challenges';
+import { Participant, DailyLog, Challenge } from '@/lib/challenges';
 import StreakBadge from './StreakBadge';
 
 interface ParticipantListProps {
@@ -40,10 +40,8 @@ export default function ParticipantList({
     <div className="participants-list">
       {sorted.map((p, i) => {
         const doneToday = completedIds.has(p.id);
-        // Merge DB flag (set by cron) with client-side detection (instant)
-        const effectivelyEliminated =
-          p.isEliminated ||
-          (challenge ? isSurvivalEliminated(challenge, p.currentStreak) : false);
+        // Elimination is set by the midnight cron — use Firestore flag only
+        const effectivelyEliminated = p.isEliminated;
         return (
           <div className="participant-row" key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>

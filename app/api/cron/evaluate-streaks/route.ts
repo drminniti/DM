@@ -94,35 +94,35 @@ export async function GET(req: NextRequest) {
 
             const survivorsCount = participantIds.length - failedParticipantIds.length;
             
-            // If 1 or 0 players left, the game ends
+            // If 1 or 0 active players remain, the game ends
             if (survivorsCount <= 1) {
                 await adminDb.collection('challenges').doc(challengeId).update({ status: 'COMPLETED' });
 
-                // If exactly 1 survivor, they take the pot and the badge
                 if (survivorsCount === 1) {
+                    // Exactly 1 survivor — they win the pot + badge
                     const winnerId = participantIds.find(pid => !failedParticipantIds.includes(pid));
                     const winnerDoc = activeParticipants.find(d => d.id === winnerId);
                     if (winnerDoc && winnerDoc.data().userId) {
                         const uid = winnerDoc.data().userId;
-                        // Winner gets 50 points per eliminated opponent
-                        const eliminatedCount = allParticipantsSnap.docs.length - 1;
-                        const pot = eliminatedCount > 0 ? eliminatedCount * 50 : 0;
-                        
+                        // 50 pts per every OTHER participant (all-time, not just today)
+                        const totalPlayers = allParticipantsSnap.docs.length;
+                        const pot = (totalPlayers - 1) * 50;
+
                         const userRef = adminDb.collection('users').doc(uid);
-                        
                         await adminDb.runTransaction(async (t) => {
                             const uSnap = await t.get(userRef);
                             if (uSnap.exists) {
                                 const pts = uSnap.data()?.points || 0;
                                 const badges = uSnap.data()?.badges || {};
-                                t.update(userRef, { 
+                                t.update(userRef, {
                                     points: pts + pot,
-                                    'badges.SURVIVOR': (badges.SURVIVOR || 0) + 1
+                                    'badges.SURVIVOR': (badges.SURVIVOR || 0) + 1,
                                 });
                             }
                         });
                     }
                 }
+                // survivorsCount === 0: all players eliminated — challenge closes, no winner
             }
         } else if (mode === 'INDIVIDUAL') {
             // Only reset streaks of those who failed

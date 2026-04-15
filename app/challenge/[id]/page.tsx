@@ -16,7 +16,6 @@ import {
   getChallengeDates,
   archiveParticipant,
   kickParticipant,
-  isSurvivalEliminated,
   DailyLog,
 } from '@/lib/challenges';
 import CompleteButton from '@/components/CompleteButton';
@@ -190,12 +189,9 @@ export default function ChallengePage() {
   const isSurvival = challenge?.mode === 'SURVIVAL';
   const isChallengeEnded = isFinished || challenge.status === 'COMPLETED';
 
-  // A SURVIVAL player is eliminated if:
-  // 1. The cron already set isEliminated=true in Firestore, OR
-  // 2. Their streak is behind calendar days (missed a past day) — detected client-side
-  const effectivelyEliminated =
-    myParticipant?.isEliminated ||
-    (isSurvival && myParticipant ? isSurvivalEliminated(challenge, myParticipant.currentStreak) : false);
+  // Elimination is determined ONLY by the Firestore flag set by the midnight cron.
+  // Client-side early detection was removed to avoid false positives during the day.
+  const effectivelyEliminated = myParticipant?.isEliminated ?? false;
 
   // Not enough players warning for SURVIVAL (needs at least 2 to be meaningful)
   const survivalNeedsMorePlayers = isSurvival && participants.length < 2;
@@ -281,21 +277,37 @@ export default function ChallengePage() {
         </div>
       ) : isChallengeEnded ? (
         <>
-          {result === 'WON' && (
+          {/* Survival-specific end state */}
+          {isSurvival && effectivelyEliminated && (
+            <div className="mb-6 card text-center" style={{ padding: '24px', borderColor: 'var(--color-danger)', background: 'rgba(255, 59, 48, 0.05)' }}>
+              <p style={{ fontSize: '2rem', marginBottom: 8 }}>💀</p>
+              <p className="font-bold" style={{ color: 'var(--color-danger)' }}>Fuiste eliminado</p>
+              <p className="text-muted text-sm mt-2">No sobreviviste hasta el final.</p>
+            </div>
+          )}
+          {isSurvival && !effectivelyEliminated && (
+            <div className="mb-6 card text-center" style={{ padding: '24px', borderColor: 'var(--color-primary)', background: 'rgba(0, 230, 118, 0.05)' }}>
+              <p style={{ fontSize: '2rem', marginBottom: 8 }}>🏆</p>
+              <p className="font-bold text-accent">¡El único sobreviviente!</p>
+              <p className="text-muted text-sm mt-2">Fuiste el último en pie. ¡Leyenda!</p>
+            </div>
+          )}
+          {/* Individual / Team result messages */}
+          {!isSurvival && result === 'WON' && (
             <div className="mb-6 card text-center" style={{ padding: '24px', borderColor: 'var(--color-primary)', background: 'rgba(0, 230, 118, 0.05)' }}>
               <p style={{ fontSize: '2rem', marginBottom: 8 }}>🏆</p>
               <p className="font-bold text-accent">¡Desafío superado!</p>
               <p className="text-muted text-sm mt-2">Completaste los {challenge.totalDays} días. ¡Increíble racha!</p>
             </div>
           )}
-          {result === 'ALMOST' && (
+          {!isSurvival && result === 'ALMOST' && (
             <div className="mb-6 card text-center" style={{ padding: '24px', borderColor: '#f0c040', background: 'rgba(240, 192, 64, 0.05)' }}>
               <p style={{ fontSize: '2rem', marginBottom: 8 }}>😅</p>
               <p className="font-bold" style={{ color: '#f0c040' }}>¡Casi lo lograste!</p>
               <p className="text-muted text-sm mt-2">Te faltó un día para terminar. ¡Suerte en el próximo desafío!</p>
             </div>
           )}
-          {result === 'LOST' && (
+          {!isSurvival && result === 'LOST' && (
             <div className="mb-6 card text-center" style={{ padding: '24px', borderColor: 'var(--color-danger)', background: 'rgba(255, 59, 48, 0.05)' }}>
               <p style={{ fontSize: '2rem', marginBottom: 8 }}>💪</p>
               <p className="font-bold" style={{ color: 'var(--color-danger)' }}>El desafío terminó</p>
