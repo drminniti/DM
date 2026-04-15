@@ -16,6 +16,7 @@ import {
   getChallengeDates,
   archiveParticipant,
   kickParticipant,
+  isSurvivalEliminated,
   DailyLog,
 } from '@/lib/challenges';
 import CompleteButton from '@/components/CompleteButton';
@@ -188,6 +189,16 @@ export default function ChallengePage() {
 
   const isSurvival = challenge?.mode === 'SURVIVAL';
   const isChallengeEnded = isFinished || challenge.status === 'COMPLETED';
+
+  // A SURVIVAL player is eliminated if:
+  // 1. The cron already set isEliminated=true in Firestore, OR
+  // 2. Their streak is behind calendar days (missed a past day) — detected client-side
+  const effectivelyEliminated =
+    myParticipant?.isEliminated ||
+    (isSurvival && myParticipant ? isSurvivalEliminated(challenge, myParticipant.currentStreak) : false);
+
+  // Not enough players warning for SURVIVAL (needs at least 2 to be meaningful)
+  const survivalNeedsMorePlayers = isSurvival && participants.length < 2;
   
   return (
     <div className="app-container" style={isSurvival ? { background: 'radial-gradient(circle at top, rgba(90,0,0,0.4) 0%, var(--color-background) 70%)' } : {}}>
@@ -256,14 +267,20 @@ export default function ChallengePage() {
         <Link href={`/join/${id}`} className="btn btn-primary btn-xl mb-6">
           Unirme al desafío
         </Link>
-      ) : myParticipant?.isEliminated ? (
+      ) : effectivelyEliminated ? (
         <div className="mb-6 card text-center" style={{ padding: '24px', borderColor: 'var(--color-danger)', background: 'rgba(255, 59, 48, 0.05)' }}>
           <p style={{ fontSize: '2rem', marginBottom: 8 }}>💀</p>
           <p className="font-bold" style={{ color: 'var(--color-danger)' }}>Fuiste eliminado</p>
           <p className="text-muted text-sm mt-2">Perdiste la racha y quedaste fuera de la carrera.</p>
         </div>
+      ) : survivalNeedsMorePlayers && !isChallengeEnded ? (
+        <div className="mb-6 card text-center" style={{ padding: '24px', borderColor: '#f0c040', background: 'rgba(240, 192, 64, 0.05)' }}>
+          <p style={{ fontSize: '2rem', marginBottom: 8 }}>⏳</p>
+          <p className="font-bold" style={{ color: '#f0c040' }}>Esperando más jugadores</p>
+          <p className="text-muted text-sm mt-2">El desafío de Supervivencia necesita al menos 2 participantes para comenzar.</p>
+        </div>
       ) : isChallengeEnded ? (
-        <>  
+        <>
           {result === 'WON' && (
             <div className="mb-6 card text-center" style={{ padding: '24px', borderColor: 'var(--color-primary)', background: 'rgba(0, 230, 118, 0.05)' }}>
               <p style={{ fontSize: '2rem', marginBottom: 8 }}>🏆</p>

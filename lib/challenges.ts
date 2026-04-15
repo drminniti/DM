@@ -98,6 +98,29 @@ export function getChallengeProgress(
     };
 }
 
+/**
+ * Returns true when a SURVIVAL participant has missed a day and should be
+ * treated as eliminated — even before the midnight cron marks them officially.
+ * Rule: streak must equal calendarDaysElapsed for the player to still be alive.
+ */
+export function isSurvivalEliminated(
+    challenge: Challenge,
+    streak: number
+): boolean {
+    if (challenge.mode !== 'SURVIVAL') return false;
+    const tz = challenge.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const createdDate = challenge.createdAt?.toDate?.() || new Date();
+    const createdDayText = createdDate.toLocaleDateString('en-CA', { timeZone: tz });
+    const todayText = new Date().toLocaleDateString('en-CA', { timeZone: tz });
+    const createdTz = new Date(createdDayText + 'T00:00:00');
+    const todayTz = new Date(todayText + 'T00:00:00');
+    const calendarDaysElapsed = Math.round(
+        (todayTz.getTime() - createdTz.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    // If streak < calendarDaysElapsed the player missed at least one past day
+    return streak < calendarDaysElapsed;
+}
+
 export function getChallengeDates(createdAt: unknown, totalDays: number, timezone?: string): string[] {
     const createdDate = (createdAt && typeof createdAt === 'object' && 'toDate' in createdAt && typeof createdAt.toDate === 'function') ? createdAt.toDate() : new Date(createdAt as string | number);
     const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
