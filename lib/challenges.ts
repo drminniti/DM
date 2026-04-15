@@ -51,7 +51,7 @@ export interface DailyLog {
 export function getChallengeProgress(
     challenge: Challenge,
     highestStreak: number,
-    completedToday: boolean
+    completedToday: boolean = false
 ) {
     const createdDate = challenge.createdAt?.toDate?.() || new Date();
     // Use the challenge's timezone to calculate days consistently for all participants
@@ -71,14 +71,30 @@ export function getChallengeProgress(
     // This way Day 1 starts at 0% and moves only when you press the button.
     const progress = Math.min(highestStreak / challenge.totalDays, 1);
 
-    const isFinished = highestStreak >= challenge.totalDays && completedToday;
+    // The challenge is finished once all calendar days have elapsed (time-based),
+    // OR if we're on the last day and the user already completed it today.
+    const isFinished = calendarDaysElapsed >= challenge.totalDays
+        || (calendarDaysElapsed === challenge.totalDays - 1 && completedToday);
     const daysLeft = isFinished ? 0 : Math.max(0, challenge.totalDays - calendarDaysElapsed);
+
+    // Result classification (only meaningful when finished)
+    let result: 'WON' | 'ALMOST' | 'LOST' | null = null;
+    if (isFinished) {
+        if (highestStreak >= challenge.totalDays) {
+            result = 'WON';
+        } else if (highestStreak >= challenge.totalDays - 1) {
+            result = 'ALMOST';
+        } else {
+            result = 'LOST';
+        }
+    }
 
     return {
         currentDay,
         daysLeft,
         progress,
         isFinished,
+        result,
     };
 }
 

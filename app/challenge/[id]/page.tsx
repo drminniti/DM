@@ -111,13 +111,14 @@ export default function ChallengePage() {
       ? Math.min(...participants.map((p) => p.currentStreak))
       : myParticipant?.currentStreak ?? 0;
     
-    const { isFinished } = getChallengeProgress(
+    const { result } = getChallengeProgress(
       challenge, 
       challenge.mode === 'TEAM' ? teamStreak : (myParticipant?.currentStreak ?? 0), 
       completedToday
     );
     
-    if (isFinished && typeof window !== 'undefined') {
+    // Only show the celebration modal when the player actually WON
+    if (result === 'WON' && typeof window !== 'undefined') {
       const storageKey = `seen_finish_${challenge.id}`;
       if (!localStorage.getItem(storageKey)) {
         const timer = setTimeout(() => setShowEndModal(true), 600);
@@ -156,7 +157,7 @@ export default function ChallengePage() {
       ? Math.min(...participants.map((p) => p.currentStreak))
       : myParticipant?.currentStreak ?? 0;
 
-  const { currentDay, daysLeft, progress, isFinished } = getChallengeProgress(challenge, challenge.mode === 'TEAM' ? teamStreak : (myParticipant?.currentStreak ?? 0), completedToday);
+  const { currentDay, daysLeft, progress, isFinished, result } = getChallengeProgress(challenge, challenge.mode === 'TEAM' ? teamStreak : (myParticipant?.currentStreak ?? 0), completedToday);
 
   const handleCloseEndModal = () => {
     if (challenge) localStorage.setItem(`seen_finish_${challenge.id}`, 'true');
@@ -262,11 +263,29 @@ export default function ChallengePage() {
           <p className="text-muted text-sm mt-2">Perdiste la racha y quedaste fuera de la carrera.</p>
         </div>
       ) : isChallengeEnded ? (
-        <div className="mb-6 card text-center" style={{ padding: '24px', borderColor: 'var(--color-primary)', background: 'rgba(0, 230, 118, 0.05)' }}>
-          <p style={{ fontSize: '2rem', marginBottom: 8 }}>🏆</p>
-          <p className="font-bold text-accent">¡Desafío superado!</p>
-          <p className="text-muted text-sm mt-2">Ya no hay más días que marcar.</p>
-        </div>
+        <>  
+          {result === 'WON' && (
+            <div className="mb-6 card text-center" style={{ padding: '24px', borderColor: 'var(--color-primary)', background: 'rgba(0, 230, 118, 0.05)' }}>
+              <p style={{ fontSize: '2rem', marginBottom: 8 }}>🏆</p>
+              <p className="font-bold text-accent">¡Desafío superado!</p>
+              <p className="text-muted text-sm mt-2">Completaste los {challenge.totalDays} días. ¡Increíble racha!</p>
+            </div>
+          )}
+          {result === 'ALMOST' && (
+            <div className="mb-6 card text-center" style={{ padding: '24px', borderColor: '#f0c040', background: 'rgba(240, 192, 64, 0.05)' }}>
+              <p style={{ fontSize: '2rem', marginBottom: 8 }}>😅</p>
+              <p className="font-bold" style={{ color: '#f0c040' }}>¡Casi lo lograste!</p>
+              <p className="text-muted text-sm mt-2">Te faltó un día para terminar. ¡Suerte en el próximo desafío!</p>
+            </div>
+          )}
+          {result === 'LOST' && (
+            <div className="mb-6 card text-center" style={{ padding: '24px', borderColor: 'var(--color-danger)', background: 'rgba(255, 59, 48, 0.05)' }}>
+              <p style={{ fontSize: '2rem', marginBottom: 8 }}>💪</p>
+              <p className="font-bold" style={{ color: 'var(--color-danger)' }}>El desafío terminó</p>
+              <p className="text-muted text-sm mt-2">Esta vez no se dio, pero cada racha es una oportunidad más. ¡Dale de nuevo!</p>
+            </div>
+          )}
+        </>
       ) : (
         <div className="mb-6">
           <CompleteButton
