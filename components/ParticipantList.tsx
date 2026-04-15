@@ -1,6 +1,6 @@
 'use client';
 
-import { Participant, DailyLog } from '@/lib/challenges';
+import { Participant, DailyLog, Challenge, isSurvivalEliminated } from '@/lib/challenges';
 import StreakBadge from './StreakBadge';
 
 interface ParticipantListProps {
@@ -12,6 +12,7 @@ interface ParticipantListProps {
   isAdmin?: boolean;
   creatorId?: string;
   onKickParticipant?: (participantId: string, playerName: string) => void;
+  challenge?: Challenge; // needed for survival elimination detection
 }
 
 export default function ParticipantList({
@@ -23,6 +24,7 @@ export default function ParticipantList({
   isAdmin = false,
   creatorId,
   onKickParticipant,
+  challenge,
 }: ParticipantListProps) {
   if (participants.length === 0) {
     return (
@@ -38,21 +40,25 @@ export default function ParticipantList({
     <div className="participants-list">
       {sorted.map((p, i) => {
         const doneToday = completedIds.has(p.id);
+        // Merge DB flag (set by cron) with client-side detection (instant)
+        const effectivelyEliminated =
+          p.isEliminated ||
+          (challenge ? isSurvivalEliminated(challenge, p.currentStreak) : false);
         return (
           <div className="participant-row" key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
               {/* Rank medal */}
               <div className="participant-avatar" style={{ color: '#888', background: 'transparent', fontSize: '1rem' }}>
-                {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`}
+                {effectivelyEliminated ? '💀' : i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`}
               </div>
               {/* Initial avatar */}
-              <div className="participant-avatar" style={{ background: avatarColor(p.userId) }}>
+              <div className="participant-avatar" style={{ background: avatarColor(p.userId), opacity: effectivelyEliminated ? 0.5 : 1 }}>
                 {p.playerName.charAt(0).toUpperCase()}
               </div>
               {/* Name */}
-              <span className="participant-name" style={{ textDecoration: p.isEliminated ? 'line-through' : 'none', opacity: p.isEliminated ? 0.6 : 1 }}>
+              <span className="participant-name" style={{ textDecoration: effectivelyEliminated ? 'line-through' : 'none', opacity: effectivelyEliminated ? 0.5 : 1 }}>
                 {p.playerName}
-                {p.isEliminated && <span title="Eliminado" style={{ marginLeft: 6, fontSize: '0.9rem' }}>💀</span>}
+                {effectivelyEliminated && <span title="Eliminado" style={{ marginLeft: 6, fontSize: '0.9rem' }}>💀</span>}
                 {p.userId === currentUserId && (
                   <span className="text-muted text-xs" style={{ marginLeft: 4 }}>(tú)</span>
                 )}
@@ -85,7 +91,7 @@ export default function ParticipantList({
                 </button>
               )}
               {/* Today status — live */}
-              {!p.isEliminated && (
+              {!effectivelyEliminated && (
                 <span
                   style={{
                     fontSize: '1rem',
@@ -99,7 +105,7 @@ export default function ParticipantList({
                 </span>
               )}
               {/* Streak */}
-              {!p.isEliminated && <StreakBadge streak={p.currentStreak} size="sm" />}
+              {!effectivelyEliminated && <StreakBadge streak={p.currentStreak} size="sm" />}
             </div>
 
             {/* History Grid */}

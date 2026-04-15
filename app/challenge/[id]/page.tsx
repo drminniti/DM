@@ -374,6 +374,7 @@ export default function ChallengePage() {
           isAdmin={challenge?.creatorId === user.uid}
           creatorId={challenge?.creatorId}
           onKickParticipant={handleKickParticipant}
+          challenge={challenge}
         />
       </div>
 
