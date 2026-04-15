@@ -374,7 +374,15 @@ export async function markDayComplete(
                 if (newStreak === 7)  { await awardBadgeAndPoints(userId, '7_DAYS');  badgeEarned = '7_DAYS'; }
                 if (newStreak === 21) { await awardBadgeAndPoints(userId, '21_DAYS'); badgeEarned = '21_DAYS'; }
                 if (newStreak === 30) { await awardBadgeAndPoints(userId, '30_DAYS'); badgeEarned = '30_DAYS'; }
-                
+
+                // Bonus for completing 100% of the challenge (+30 pts)
+                if (newStreak === totalDays) {
+                    const { getFirebaseDb: getDb } = await import('./firebase');
+                    const { doc: fDoc, updateDoc: fUpdateDoc, increment: fIncrement } = await import('firebase/firestore');
+                    const bonusDb = getDb();
+                    await fUpdateDoc(fDoc(bonusDb, 'users', userId), { points: fIncrement(30) });
+                }
+
                 return badgeEarned;
             }
         } else if (current > totalDays) {

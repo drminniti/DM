@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
                 const uSnap = await userRef.get();
                 if (uSnap.exists) {
                     const currentPts = uSnap.data()?.points || 0;
-                    const newPts = Math.max(0, currentPts - 15);
+                    const newPts = Math.max(0, currentPts - 10);
                     await userRef.update({ points: newPts });
                 }
             }

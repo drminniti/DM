@@ -99,7 +99,6 @@ export default function RankingPage() {
         </>
       )}
 
-      {/* Rules Modal */}
       {showRules && (
         <div 
           style={{
@@ -111,35 +110,48 @@ export default function RankingPage() {
         >
           <div 
             className="card" 
-            style={{ width: '100%', maxWidth: 400, animation: 'pop 0.3s ease-out' }}
+            style={{ width: '100%', maxWidth: 400, animation: 'pop 0.3s ease-out', maxHeight: '80vh', overflowY: 'auto' }}
             onClick={e => e.stopPropagation()}
           >
             <h3 className="font-bold mb-4" style={{ fontSize: '1.25rem' }}>¿Cómo sumo puntos?</h3>
-            <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24, fontSize: '0.9rem' }}>
-              <li style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24, fontSize: '0.875rem' }}>
+              <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span>✅ Día cumplido</span>
                 <span className="text-accent font-bold">+5 pts</span>
               </li>
-              <li style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>🥉 Insignia 7 Días</span>
+              <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>🏁 Desafío 100% completado</span>
+                <span className="text-accent font-bold">+30 pts</span>
+              </li>
+              <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>🥉 Insignia 7 días</span>
                 <span className="text-accent font-bold">+50 pts</span>
               </li>
-              <li style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>🥈 Insignia 21 Días</span>
+              <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>🥈 Insignia 21 días</span>
                 <span className="text-accent font-bold">+150 pts</span>
               </li>
-              <li style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>🥇 Insignia 30 Días</span>
+              <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>🥇 Insignia 30 días</span>
                 <span className="text-accent font-bold">+300 pts</span>
               </li>
-              <li style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-danger)' }}>
+              <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>☠️ Ganar Supervivencia</span>
+                <span style={{ color: '#ffd700', fontWeight: 800 }}>+50 pts × rival</span>
+              </li>
+              <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--color-danger)' }}>
                 <span>❌ Perder racha</span>
-                <span className="font-bold">-15 pts</span>
+                <span className="font-bold">−10 pts</span>
               </li>
             </ul>
-            <button className="btn btn-primary" onClick={() => setShowRules(false)}>
-              ¡Entendido!
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button className="btn btn-primary" onClick={() => setShowRules(false)}>
+                ¡Entendido!
+              </button>
+              <a href="/info" className="btn btn-secondary" style={{ textAlign: 'center', textDecoration: 'none' }}>
+                Ver reglas completas 📖
+              </a>
+            </div>
           </div>
         </div>
       )}

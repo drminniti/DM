@@ -30,6 +30,7 @@ export default function BottomNav() {
       >
         <NavItem href="/" icon="🏠" label="Desafíos" active={pathname === '/'} />
         <NavItem href="/ranking" icon="🏆" label="Ranking" active={pathname === '/ranking'} />
+        <NavItem href="/info" icon="📖" label="Reglas" active={pathname === '/info'} />
         <NavItem href="/profile" icon="👤" label="Perfil" active={pathname === '/profile'} />
       </nav>
     </>
