@@ -12,6 +12,9 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Firebase Admin not configured' }, { status: 500 });
     }
 
+    const now = new Date();
+    const runLog: Record<string, unknown>[] = [];
+
     // Get all active challenges
     const challengesSnap = await adminDb
         .collection('challenges')
@@ -25,26 +28,72 @@ export async function GET(req: NextRequest) {
         const challengeId = challengeDoc.id;
         const mode = challenge.mode as 'TEAM' | 'INDIVIDUAL' | 'SURVIVAL';
         const tz = challenge.timezone || 'America/Argentina/Buenos_Aires';
-        
-        const now = new Date();
-        // Daily Cron: evaluamos todos globalmente porque Vercel Hobby solo permite 1 vez al día
 
-        // Si es medianoche, evaluamos si CUMPLIERON "AYER"
-        // Le restamos 2 horas a "ahora" para asegurarnos de caer en el día anterior local
-        const yesterdayTime = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-        const yesterdayString = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(yesterdayTime);
+        // Robustly determine "yesterday" in the challenge's local timezone.
+        // The cron runs at 03:00 UTC (= 00:00 ART). We subtract 3.5 hours to
+        // safely land in the previous calendar day regardless of small timing drift.
+        const safeYesterday = new Date(now.getTime() - 3.5 * 60 * 60 * 1000);
+        const yesterdayString = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(safeYesterday);
 
-        // Get all participants
+        const entry: Record<string, unknown> = {
+            challengeId,
+            challengeName: challenge.name,
+            mode,
+            tz,
+            yesterdayString,
+        };
+
+        // Get ALL participants (including already eliminated)
         const allParticipantsSnap = await adminDb
             .collection('participants')
             .where('challengeId', '==', challengeId)
             .get();
 
-        // Ignore already eliminated participants
-        const activeParticipants = allParticipantsSnap.docs.filter((d) => !d.data().isEliminated);
+        // Only process non-eliminated, non-archived participants
+        const activeParticipants = allParticipantsSnap.docs.filter(
+            (d) => !d.data().isEliminated && !d.data().isArchived
+        );
         const participantIds = activeParticipants.map((d) => d.id);
 
-        // Get yesterday's logs for this challenge
+        entry['activeCount'] = participantIds.length;
+
+        // ── SURVIVAL ONLY: close game if only 0 or 1 active player remains ──
+        // This handles the case where earlier crons eliminated most players and
+        // only 1 survivor is left — they should win immediately.
+        if (mode === 'SURVIVAL' && participantIds.length <= 1) {
+            await adminDb.collection('challenges').doc(challengeId).update({ status: 'COMPLETED' });
+
+            if (participantIds.length === 1) {
+                const winnerDoc = activeParticipants[0];
+                const uid = winnerDoc.data().userId;
+                const totalPlayers = allParticipantsSnap.docs.length;
+                const pot = (totalPlayers - 1) * 50;
+
+                if (uid && pot > 0) {
+                    const userRef = adminDb.collection('users').doc(uid);
+                    await adminDb.runTransaction(async (t) => {
+                        const uSnap = await t.get(userRef);
+                        if (uSnap.exists) {
+                            const pts = uSnap.data()?.points || 0;
+                            const badges = uSnap.data()?.badges || {};
+                            t.update(userRef, {
+                                points: pts + pot,
+                                'badges.SURVIVOR': (badges.SURVIVOR || 0) + 1,
+                            });
+                        }
+                    });
+                    entry['winner'] = uid;
+                    entry['pot'] = pot;
+                }
+            }
+
+            entry['action'] = 'survival_closed_sole_survivor';
+            runLog.push(entry);
+            processed++;
+            continue;
+        }
+
+        // Get yesterday's completed logs for this challenge
         const logsSnap = await adminDb
             .collection('daily_logs')
             .where('challengeId', '==', challengeId)
@@ -60,51 +109,55 @@ export async function GET(req: NextRequest) {
             (pid) => !completedParticipantIds.has(pid)
         );
 
-        const failedParticipants = activeParticipants.filter(d => failedParticipantIds.includes(d.id));
+        entry['completedYesterday'] = [...completedParticipantIds];
+        entry['failedYesterday'] = failedParticipantIds;
 
-        if (failedParticipants.length === 0) {
-            // Everyone completed — no resets needed (or SURVIVAL check if totalDays reached, but handle simple for now)
+        // If nobody failed, nothing to do for this challenge
+        if (failedParticipantIds.length === 0) {
+            entry['action'] = 'all_completed_no_action';
+            runLog.push(entry);
             processed++;
             continue;
         }
 
-        // Apply point penalties to everyone who failed (-15 points, min 0)
-        // We do this individually before modifying the streaks
+        const failedParticipants = activeParticipants.filter(d => failedParticipantIds.includes(d.id));
+
+        // Apply point penalties to everyone who failed (-10 pts, floor at 0)
         for (const pDoc of failedParticipants) {
             const uid = pDoc.data().userId;
             if (uid) {
-                // Read current points and subtract carefully
                 const userRef = adminDb.collection('users').doc(uid);
-                // We use a simple read-then-write fallback since batch increment with floor is tricky.
                 const uSnap = await userRef.get();
                 if (uSnap.exists) {
                     const currentPts = uSnap.data()?.points || 0;
-                    const newPts = Math.max(0, currentPts - 10);
-                    await userRef.update({ points: newPts });
+                    await userRef.update({ points: Math.max(0, currentPts - 10) });
                 }
             }
         }
 
         if (mode === 'SURVIVAL') {
+            // Eliminate all who failed yesterday
             const batch = adminDb.batch();
             for (const pid of failedParticipantIds) {
-                batch.update(adminDb.collection('participants').doc(pid), { isEliminated: true, currentStreak: 0 });
+                batch.update(adminDb.collection('participants').doc(pid), {
+                    isEliminated: true,
+                    currentStreak: 0,
+                });
             }
             await batch.commit();
+            entry['eliminated'] = failedParticipantIds;
 
             const survivorsCount = participantIds.length - failedParticipantIds.length;
-            
-            // If 1 or 0 active players remain, the game ends
+            entry['survivorsAfter'] = survivorsCount;
+
             if (survivorsCount <= 1) {
                 await adminDb.collection('challenges').doc(challengeId).update({ status: 'COMPLETED' });
 
                 if (survivorsCount === 1) {
-                    // Exactly 1 survivor — they win the pot + badge
                     const winnerId = participantIds.find(pid => !failedParticipantIds.includes(pid));
                     const winnerDoc = activeParticipants.find(d => d.id === winnerId);
                     if (winnerDoc && winnerDoc.data().userId) {
                         const uid = winnerDoc.data().userId;
-                        // 50 pts per every OTHER participant (all-time, not just today)
                         const totalPlayers = allParticipantsSnap.docs.length;
                         const pot = (totalPlayers - 1) * 50;
 
@@ -120,28 +173,40 @@ export async function GET(req: NextRequest) {
                                 });
                             }
                         });
+                        entry['winner'] = uid;
+                        entry['pot'] = pot;
                     }
                 }
-                // survivorsCount === 0: all players eliminated — challenge closes, no winner
+                entry['action'] = 'survival_ended';
+            } else {
+                entry['action'] = 'survival_eliminated_some';
             }
+
         } else if (mode === 'INDIVIDUAL') {
-            // Only reset streaks of those who failed
             const batch = adminDb.batch();
             for (const pid of failedParticipantIds) {
                 batch.update(adminDb.collection('participants').doc(pid), { currentStreak: 0 });
             }
             await batch.commit();
+            entry['action'] = 'individual_streaks_reset';
+
         } else if (mode === 'TEAM') {
-            // At least one failed — reset ALL streaks
             const batch = adminDb.batch();
             for (const pid of participantIds) {
                 batch.update(adminDb.collection('participants').doc(pid), { currentStreak: 0 });
             }
             await batch.commit();
+            entry['action'] = 'team_all_reset';
         }
 
+        runLog.push(entry);
         processed++;
     }
 
-    return NextResponse.json({ ok: true, challengesProcessed: processed });
+    return NextResponse.json({
+        ok: true,
+        challengesProcessed: processed,
+        runAt: now.toISOString(),
+        log: runLog,
+    });
 }
