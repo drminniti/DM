@@ -62,11 +62,13 @@ export default function HomePage() {
   if (loading || !user) return null;
 
   const active = challenges.filter(({ challenge, streak, completedToday }) => {
+    if (challenge.status === 'COMPLETED') return false;
     const { isFinished } = getChallengeProgress(challenge, streak, completedToday);
     return !isFinished;
   });
 
   const finished = challenges.filter(({ challenge, streak, completedToday }) => {
+    if (challenge.status === 'COMPLETED') return true;
     const { isFinished } = getChallengeProgress(challenge, streak, completedToday);
     return isFinished;
   });
