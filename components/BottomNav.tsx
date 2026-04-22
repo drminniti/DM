@@ -9,7 +9,7 @@ export default function BottomNav() {
   return (
     <>
       {/* Spacer to prevent content from hiding behind the fixed nav */}
-      <div style={{ height: 80 }} />
+      <div style={{ height: 90 }} />
 
       <nav
         style={{
@@ -30,6 +30,44 @@ export default function BottomNav() {
       >
         <NavItem href="/" icon="🏠" label="Desafíos" active={pathname === '/'} />
         <NavItem href="/ranking" icon="🏆" label="Ranking" active={pathname === '/ranking'} />
+
+        {/* Central Create button */}
+        <Link
+          href="/create"
+          id="create-challenge-btn"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 4,
+            textDecoration: 'none',
+            flex: 1,
+          }}
+        >
+          <span
+            style={{
+              width: 46,
+              height: 46,
+              borderRadius: '50%',
+              background: 'var(--color-accent)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.5rem',
+              color: '#000',
+              fontWeight: 800,
+              boxShadow: '0 2px 12px rgba(0, 230, 118, 0.35)',
+              marginTop: -18,
+              border: '3px solid rgba(20,20,20,0.85)',
+            }}
+          >
+            +
+          </span>
+          <span style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.05em', color: 'var(--color-text-muted)' }}>
+            Crear
+          </span>
+        </Link>
+
         <NavItem href="/info" icon="📖" label="Reglas" active={pathname === '/info'} />
         <NavItem href="/profile" icon="👤" label="Perfil" active={pathname === '/profile'} />
       </nav>

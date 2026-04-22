@@ -232,52 +232,27 @@ export default function HomePage() {
                 Finalizados ({finished.length})
               </summary>
               <div className="flex flex-col" style={{ gap: 12, marginTop: 12 }}>
-                {finished.map(({ challenge, streak, completedToday, isEliminated }) => (
-                  <ChallengeCard
-                    key={challenge.id}
-                    challenge={challenge}
-                    streak={streak}
-                    completedToday={completedToday}
-                    isEliminated={isEliminated}
-                    isFinished
-                  />
-                ))}
+                {finished.map(({ challenge, streak, completedToday, isEliminated }) => {
+                  // Estimate points earned: 5 pts per completed day (streak as proxy)
+                  // This matches addDailyPoints (+5 per day in lib/users.ts)
+                  const pointsEarned = streak * 5;
+                  return (
+                    <ChallengeCard
+                      key={challenge.id}
+                      challenge={challenge}
+                      streak={streak}
+                      completedToday={completedToday}
+                      isEliminated={isEliminated}
+                      isFinished
+                      pointsEarned={pointsEarned}
+                    />
+                  );
+                })}
               </div>
             </details>
           )}
         </>
       )}
-
-      {/* Floating Action Button — always visible above nav */}
-      <Link
-        href="/create"
-        id="create-challenge-btn"
-        style={{
-          position: 'fixed',
-          bottom: 'calc(70px + env(safe-area-inset-bottom) + 16px)',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 99,
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '14px 28px',
-          background: 'var(--color-accent)',
-          color: '#000',
-          fontWeight: 800,
-          fontSize: '0.95rem',
-          borderRadius: 99,
-          boxShadow: '0 4px 24px rgba(0, 230, 118, 0.35)',
-          textDecoration: 'none',
-          whiteSpace: 'nowrap',
-          transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-        }}
-        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateX(-50%) scale(1.05)'; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateX(-50%) scale(1)'; }}
-      >
-        <span style={{ fontSize: '1.1rem' }}>+</span>
-        Crear Desafío
-      </Link>
 
       <BottomNav />
     </div>

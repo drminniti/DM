@@ -10,6 +10,7 @@ interface ChallengeCardProps {
     completedToday: boolean;
     isEliminated?: boolean;
     isFinished?: boolean;
+    pointsEarned?: number; // total points earned in this challenge (shown when finished)
 }
 
 export default function ChallengeCard({
@@ -18,6 +19,7 @@ export default function ChallengeCard({
     completedToday,
     isEliminated = false,
     isFinished = false,
+    pointsEarned,
 }: ChallengeCardProps) {
     const { currentDay, progress, result } = getChallengeProgress(challenge, streak, completedToday);
 
@@ -78,11 +80,31 @@ export default function ChallengeCard({
             <div className="text-muted text-xs mt-2" style={{ color: isEliminated ? 'var(--color-danger)' : isSurvival ? 'rgba(255,59,48,0.8)' : undefined, fontWeight: isEliminated ? 'bold' : 'normal' }}>
                 {isEliminated
                     ? '💀 ELIMINADO'
+                    : isFinished && isSurvival
+                    ? '☠️ Supervivencia finalizada'
                     : isFinished && resultLabel
                     ? `${resultIcon} ${resultLabel}`
                     : `Día ${currentDay} de ${challenge.totalDays}`
                 }
             </div>
+            {/* Points earned — shown only when finished */}
+            {isFinished && pointsEarned !== undefined && pointsEarned > 0 && (
+                <div style={{
+                    marginTop: 8,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    background: 'rgba(0, 230, 118, 0.1)',
+                    border: '1px solid rgba(0, 230, 118, 0.25)',
+                    borderRadius: 99,
+                    padding: '3px 10px',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    color: 'var(--color-accent)',
+                }}>
+                    +{pointsEarned} pts ganados
+                </div>
+            )}
         </Link>
     );
 }
