@@ -67,15 +67,18 @@ export function getChallengeProgress(
     // currentDay label = calendar elapsed + 1 (capped at totalDays)
     const currentDay = Math.min(calendarDaysElapsed + 1, challenge.totalDays);
 
-    // Progress bar = days actually COMPLETED (streak), not just elapsed.
-    // This way Day 1 starts at 0% and moves only when you press the button.
-    const progress = Math.min(highestStreak / challenge.totalDays, 1);
+    // Progress bar (Bug 1 fix) = calendar days elapsed / total days.
+    // This reflects how much of the challenge timeline has passed, not the personal streak.
+    // The streak is shown separately via StreakBadge.
+    const calendarProgress = Math.min(calendarDaysElapsed / challenge.totalDays, 1);
 
     // The challenge is finished once all calendar days have elapsed (time-based),
     // OR if we're on the last day and the user already completed it today.
     const isFinished = calendarDaysElapsed >= challenge.totalDays
         || (calendarDaysElapsed === challenge.totalDays - 1 && completedToday);
-    const daysLeft = isFinished ? 0 : Math.max(0, challenge.totalDays - calendarDaysElapsed);
+
+    // Bug 2 fix: daysLeft = totalDays - currentDay so that currentDay + daysLeft == totalDays always.
+    const daysLeft = isFinished ? 0 : Math.max(0, challenge.totalDays - currentDay);
 
     // Result classification (only meaningful when finished)
     let result: 'WON' | 'ALMOST' | 'LOST' | null = null;
@@ -92,7 +95,7 @@ export function getChallengeProgress(
     return {
         currentDay,
         daysLeft,
-        progress,
+        progress: calendarProgress,
         isFinished,
         result,
     };

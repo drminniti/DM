@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 
 export async function GET(req: NextRequest) {
-    // Protect with secret
-    const secret = req.headers.get('x-cron-secret') ?? req.nextUrl.searchParams.get('secret');
-    if (secret !== process.env.CRON_SECRET) {
+    // Protect with secret.
+    // Vercel automatically sends: Authorization: Bearer <CRON_SECRET> for cron invocations.
+    // Manual calls (debugging) can pass x-cron-secret header or ?secret= query param.
+    const authHeader = req.headers.get('authorization');
+    const manualSecret = req.headers.get('x-cron-secret') ?? req.nextUrl.searchParams.get('secret');
+    const isVercelCron = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+    const isManualCall = manualSecret === process.env.CRON_SECRET;
+    if (!isVercelCron && !isManualCall) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
