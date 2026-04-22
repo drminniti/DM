@@ -126,13 +126,14 @@ export async function GET(req: NextRequest) {
         if (survivorsCount <= 1) {
             await adminDb.collection('challenges').doc(challengeId).update({ status: 'COMPLETED' });
 
-            if (survivorsCount === 1) {
-                const winnerId = activeParticipants.find((d) => !toEliminate.includes(d.id));
-                if (winnerId) {
-                    const uid = winnerId.data().userId;
-                    const totalPlayers = allPartsSnap.docs.length;
-                    const pot = (totalPlayers - 1) * 50;
+            const totalPlayers = allPartsSnap.docs.length;
+            const pot = (totalPlayers - 1) * 50;
 
+            if (survivorsCount === 1) {
+                // One survivor — full pot
+                const winnerDoc = activeParticipants.find((d) => !toEliminate.includes(d.id));
+                if (winnerDoc) {
+                    const uid = winnerDoc.data().userId;
                     if (uid && pot > 0) {
                         const userRef = adminDb.collection('users').doc(uid);
                         await adminDb.runTransaction(async (t) => {
@@ -150,6 +151,26 @@ export async function GET(req: NextRequest) {
                         entry['pot'] = pot;
                     }
                 }
+            } else if (survivorsCount === 0 && toEliminate.length > 0 && pot > 0) {
+                // Everyone fell — split pot equally among last batch
+                const share = Math.floor(pot / toEliminate.length);
+                const winners: string[] = [];
+                for (const pid of toEliminate) {
+                    const partDoc = activeParticipants.find((d) => d.id === pid);
+                    const uid = partDoc?.data().userId;
+                    if (uid) {
+                        const userRef = adminDb.collection('users').doc(uid);
+                        const uSnap = await userRef.get();
+                        if (uSnap.exists) {
+                            const pts = uSnap.data()?.points || 0;
+                            await userRef.update({ points: pts + share });
+                            winners.push(uid);
+                        }
+                    }
+                }
+                entry['potSplitAmong'] = winners;
+                entry['sharePerPlayer'] = share;
+                entry['pot'] = pot;
             }
             entry['action'] = 'survival_closed';
         } else {
