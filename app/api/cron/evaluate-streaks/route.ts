@@ -208,12 +208,11 @@ export async function GET(req: NextRequest) {
             }
 
         } else if (mode === 'INDIVIDUAL') {
-            const batch = adminDb.batch();
-            for (const pid of failedParticipantIds) {
-                batch.update(adminDb.collection('participants').doc(pid), { currentStreak: 0 });
-            }
-            await batch.commit();
-            entry['action'] = 'individual_streaks_reset';
+            // In INDIVIDUAL mode the streak is cumulative (total days completed).
+            // Missing a day already costs -10 pts (applied above).
+            // We do NOT reset currentStreak to 0 — the counter only moves forward
+            // when the player presses the button, so missing simply means no +1 that day.
+            entry['action'] = 'individual_no_streak_reset';
 
         } else if (mode === 'TEAM') {
             const batch = adminDb.batch();
