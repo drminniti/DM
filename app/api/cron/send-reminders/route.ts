@@ -5,15 +5,15 @@ import { adminDb, adminMessaging } from '@/lib/firebase-admin';
  * Cron: /api/cron/send-reminders
  * Schedule: 0 23 * * *  (23:00 UTC = 20:00 Argentina / Buenos Aires, UTC-3)
  *
- * Sends a push notification to every participant who has NOT completed
- * their daily task yet. Each user (identified by userId) gets at most ONE
- * notification, even if they participate in multiple active challenges.
+ * Sends ONE push notification per physical device (FCM token) to participants
+ * who have NOT completed their daily task yet. Deduplicates by fcmToken so
+ * a user in multiple active challenges only receives 1 notification.
  *
  * Auth: Vercel invokes crons with  Authorization: Bearer <CRON_SECRET>
  * You can also call it manually with ?secret=<CRON_SECRET> for debugging.
  */
 export async function GET(req: NextRequest) {
-  // ── Auth ────────────────────────────────────────────────────────────────
+  // ── Auth ─────────────────────────────────────────────────────────────────
   // Vercel automatically sends: Authorization: Bearer <CRON_SECRET>
   const authHeader = req.headers.get('authorization');
   const bearerToken = authHeader?.startsWith('Bearer ')
@@ -23,15 +23,15 @@ export async function GET(req: NextRequest) {
   const secret = bearerToken ?? querySecret;
 
   if (secret !== process.env.CRON_SECRET) {
-    console.error('[send-reminders] Unauthorized. Received secret:', secret ? '(present but wrong)' : '(missing)');
+    console.error('[send-reminders] Unauthorized. secret:', secret ? '(present but wrong)' : '(missing)');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // ── Firebase check ───────────────────────────────────────────────────────
+  // ── Firebase check ────────────────────────────────────────────────────────
   if (!adminDb || !adminMessaging) {
     console.error('[send-reminders] Firebase Admin not configured — check FIREBASE_ADMIN_* env vars in Vercel.');
     return NextResponse.json(
-      { error: 'Firebase Admin not configured. Check FIREBASE_ADMIN_CLIENT_EMAIL and FIREBASE_ADMIN_PRIVATE_KEY in Vercel environment variables.' },
+      { error: 'Firebase Admin not configured. Check FIREBASE_ADMIN_CLIENT_EMAIL and FIREBASE_ADMIN_PRIVATE_KEY.' },
       { status: 500 }
     );
   }
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   const now = new Date();
   console.log(`[send-reminders] Running at ${now.toISOString()}`);
 
-  // ── Fetch all active challenges ──────────────────────────────────────────
+  // ── Fetch all active challenges ───────────────────────────────────────────
   const challengesSnap = await adminDb
     .collection('challenges')
     .where('status', '==', 'ACTIVE')
@@ -52,11 +52,12 @@ export async function GET(req: NextRequest) {
   }
 
   /**
-   * We deduplicate by userId: each real person gets at most 1 reminder,
-   * even if they're in multiple active challenges.
-   * Map: userId → { fcmToken, pendingChallenges: string[] }
+   * Deduplicate by fcmToken: same device = same token = 1 notification max.
+   * This is more robust than deduplicating by userId because the same token
+   * is stored in every participant document the user has (one per challenge).
+   * Map: fcmToken → challengeNames[]
    */
-  const userPending = new Map<string, { fcmToken: string; challenges: string[] }>();
+  const tokenPending = new Map<string, string[]>();
 
   for (const challengeDoc of challengesSnap.docs) {
     const challengeId = challengeDoc.id;
@@ -100,26 +101,24 @@ export async function GET(req: NextRequest) {
       if (completedIds.has(partDoc.id)) continue;
 
       const fcmToken = data.fcmToken as string | undefined;
-      const userId = data.userId as string | undefined;
-
-      if (!fcmToken || !userId) {
-        console.log(`[send-reminders]   → Participant ${partDoc.id} has no FCM token or userId — skipping.`);
+      if (!fcmToken) {
+        console.log(`[send-reminders]   → Participant ${partDoc.id} has no FCM token — skipping.`);
         continue;
       }
 
-      // Accumulate pending challenges per user (for a richer notification body)
-      const existing = userPending.get(userId);
+      // Deduplicate: if same token already registered, just add the challenge name
+      const existing = tokenPending.get(fcmToken);
       if (existing) {
-        existing.challenges.push(challengeName);
+        existing.push(challengeName);
       } else {
-        userPending.set(userId, { fcmToken, challenges: [challengeName] });
+        tokenPending.set(fcmToken, [challengeName]);
       }
     }
   }
 
-  console.log(`[send-reminders] Users to notify: ${userPending.size}`);
+  console.log(`[send-reminders] Unique devices to notify: ${tokenPending.size}`);
 
-  if (userPending.size === 0) {
+  if (tokenPending.size === 0) {
     return NextResponse.json({
       ok: true,
       challengesChecked: challengesSnap.size,
@@ -128,12 +127,9 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // ── Send notifications ───────────────────────────────────────────────────
-  const tokens = Array.from(userPending.values()).map((v) => v.fcmToken);
+  // ── Send notifications ────────────────────────────────────────────────────
+  const tokens = Array.from(tokenPending.keys());
 
-  // Build per-token messages (FCM sendEachForMulticast needs a single notification)
-  // We send one batch; body will be generic but title mentions the app.
-  // For richer per-user bodies we'd need individual sends — keep it simple for now.
   let notificationsSent = 0;
   let tokenErrors = 0;
   const staleTokens: string[] = [];
@@ -148,7 +144,6 @@ export async function GET(req: NextRequest) {
         notification: {
           icon: '/icon-192.png',
           badge: '/icon-192.png',
-          // vibrate is not in FCM types but some browsers respect it via webpush
         },
         fcmOptions: {
           link: '/',
@@ -160,12 +155,11 @@ export async function GET(req: NextRequest) {
     notificationsSent = result.successCount;
     tokenErrors = result.failureCount;
 
-    // Collect stale/invalid tokens to clean up
+    // Collect stale/invalid tokens to clean up from Firestore
     result.responses.forEach((resp, idx) => {
       if (!resp.success) {
         const errorCode = resp.error?.code;
         console.warn(`[send-reminders] Token[${idx}] failed: ${errorCode}`);
-        // registration-token-not-registered or invalid-registration-token → stale
         if (
           errorCode === 'messaging/registration-token-not-registered' ||
           errorCode === 'messaging/invalid-registration-token'
@@ -179,12 +173,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
   }
 
-  // ── Clean up stale FCM tokens ────────────────────────────────────────────
+  // ── Clean up stale FCM tokens from Firestore ──────────────────────────────
   if (staleTokens.length > 0) {
     console.log(`[send-reminders] Cleaning up ${staleTokens.length} stale tokens...`);
     const staleSet = new Set(staleTokens);
 
-    // Find participant docs with stale tokens and clear them
     const allPartsWithTokens = await adminDb
       .collection('participants')
       .where('fcmToken', 'in', [...staleSet].slice(0, 10)) // Firestore 'in' limit: 10
@@ -195,7 +188,7 @@ export async function GET(req: NextRequest) {
       batch.update(doc.ref, { fcmToken: '' });
     });
     await batch.commit();
-    console.log(`[send-reminders] Cleared ${allPartsWithTokens.size} stale tokens.`);
+    console.log(`[send-reminders] Cleared ${allPartsWithTokens.size} stale token(s).`);
   }
 
   console.log(`[send-reminders] Done — sent: ${notificationsSent}, errors: ${tokenErrors}`);
@@ -203,7 +196,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     challengesChecked: challengesSnap.size,
-    usersNotified: userPending.size,
+    devicesNotified: tokenPending.size,
     notificationsSent,
     tokenErrors,
     staleTokensCleaned: staleTokens.length,
