@@ -66,7 +66,25 @@ export async function GET(req: NextRequest) {
     const tz = (challenge.timezone as string) || 'America/Argentina/Buenos_Aires';
     const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(now);
 
-    console.log(`[send-reminders] Challenge "${challengeName}" (${challengeId}) — today in ${tz}: ${todayStr}`);
+    // Guard: only send reminders when local time in the challenge's timezone is between
+    // 19:30 and 23:59. Vercel Hobby can delay cron execution up to ~1 hour, so we
+    // allow a wide window (19:30–23:59) to tolerate that drift without crossing midnight.
+    const localHour = parseInt(
+      new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hour12: false }).format(now),
+      10
+    );
+    const localMinute = parseInt(
+      new Intl.DateTimeFormat('en-US', { timeZone: tz, minute: 'numeric' }).format(now),
+      10
+    );
+    const localTimeMinutes = localHour * 60 + localMinute;
+    // 19:30 = 1170 minutes, 23:59 = 1439 minutes
+    if (localTimeMinutes < 19 * 60 + 30 || localTimeMinutes >= 24 * 60) {
+      console.log(`[send-reminders] Challenge "${challengeName}" — local time ${localHour}:${String(localMinute).padStart(2, '0')} in ${tz} is outside reminder window (19:30–23:59), skipping.`);
+      continue;
+    }
+
+    console.log(`[send-reminders] Challenge "${challengeName}" (${challengeId}) — today in ${tz}: ${todayStr} (local time: ${localHour}:${String(localMinute).padStart(2, '0')})`);
 
     // All non-archived, non-eliminated participants
     const participantsSnap = await adminDb
