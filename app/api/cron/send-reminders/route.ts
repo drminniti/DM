@@ -86,6 +86,25 @@ export async function GET(req: NextRequest) {
 
     console.log(`[send-reminders] Challenge "${challengeName}" (${challengeId}) — today in ${tz}: ${todayStr} (local time: ${localHour}:${String(localMinute).padStart(2, '0')})`);
 
+    // Guard: skip challenges that have already elapsed all their days.
+    // The evaluate-streaks cron closes them at midnight, but if it hasn't run yet
+    // (or was delayed), status may still be 'ACTIVE' in Firestore.
+    const createdAt = challenge.createdAt?.toDate?.() as Date | undefined ?? new Date();
+    const createdDayStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(createdAt);
+    const createdMidnight = new Date(`${createdDayStr}T00:00:00`);
+    const todayMidnight = new Date(`${todayStr}T00:00:00`);
+    const calendarDaysElapsed = Math.round(
+      (todayMidnight.getTime() - createdMidnight.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    const totalDays = (challenge.totalDays as number) || 9999;
+
+    if (calendarDaysElapsed >= totalDays) {
+      console.log(`[send-reminders] Challenge "${challengeName}" — elapsed ${calendarDaysElapsed}/${totalDays} days, already finished. Marking COMPLETED and skipping.`);
+      // Auto-close stale challenges so they don't accumulate
+      await adminDb.collection('challenges').doc(challengeId).update({ status: 'COMPLETED' });
+      continue;
+    }
+
     // All non-archived, non-eliminated participants
     const participantsSnap = await adminDb
       .collection('participants')
